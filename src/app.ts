@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 app.use(httpLogger);
 
-app.get('/health', (_req, res) => {
+app.get('/api/v1/health', async (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 

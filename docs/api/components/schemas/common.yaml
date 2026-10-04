@@ -1,0 +1,220 @@
+HealthResponse:
+  type: object
+  required:
+    - status
+  properties:
+    status:
+      type: string
+      enum:
+        - ok
+
+SuccessEnvelope:
+  type: object
+  required:
+    - data
+  properties:
+    data:
+      description: Response payload.
+    meta:
+      $ref: '#/ResponseMeta'
+
+ResponseMeta:
+  type: object
+  description: Optional response metadata.
+  properties:
+    page:
+      type: integer
+      minimum: 1
+    limit:
+      type: integer
+      minimum: 1
+    total:
+      type: integer
+      minimum: 0
+    totalPages:
+      type: integer
+      minimum: 0
+  additionalProperties: true
+
+ErrorEnvelope:
+  type: object
+  required:
+    - error
+  properties:
+    error:
+      $ref: '#/ApiError'
+
+ApiError:
+  type: object
+  required:
+    - code
+  properties:
+    code:
+      type: string
+      description: Stable, machine-readable error code.
+      example: VALIDATION_ERROR
+
+    details:
+      type: array
+      description: Optional structured error details.
+      items:
+        $ref: '#/ErrorDetail'
+
+ErrorDetail:
+  type: object
+  required:
+    - code
+  properties:
+    field:
+      type: string
+      description: Field associated with the error, if applicable.
+      example: email
+      
+    code:
+      type: string
+      description: Machine-readable detail code for client-side localization.
+      example: INVALID_FORMAT
+
+    params:
+      type: object
+      description: Optional parameters used to construct localized messages.
+      additionalProperties: true
+      example:
+        minLength: 8
+
+Integration:
+  type: object
+  required:
+    - id
+    - name
+    - imageUrl
+    - status
+    - authorizationMethod
+    - type
+  properties:
+    id:
+      type: string
+      example: shopify
+    name:
+      type: string
+      example: Shopify
+    imageUrl:
+      type: string
+      format: uri
+      example: https://cdn.example.com/shopify.svg
+    status:
+      type: string
+      enum:
+        - connected
+        - not_connected
+    authorizationMethod:
+      type: string
+      enum:
+        - oauth
+        - api_key
+    type:
+      type: string
+      enum:
+        - ecommerce
+        - erp
+
+Action:
+  type: object
+  required:
+    - id
+    - name
+    - description
+    - integrationId
+    - integrationName
+  properties:
+    id:
+      type: string
+      example: shopify.create_order
+    name:
+      type: string
+      example: Create order
+    description:
+      type: string
+      example: Create an order in Shopify.
+    integrationId:
+      type: string
+      example: shopify
+    integrationName:
+      type: string
+      example: Shopify
+
+AgentAction:
+  allOf:
+    - $ref: '#/Action'
+    - type: object
+      required:
+        - allowed
+        - requireApproval
+      properties:
+        allowed:
+          type: boolean
+        requireApproval:
+          type: boolean
+
+Execution:
+  type: object
+  required:
+    - id
+    - actionName
+    - integrationName
+    - agentName
+    - initiatedBy
+    - timestamp
+  properties:
+    id:
+      type: string
+      example: exec_01JQ2Y6Q9M
+    actionName:
+      type: string
+      example: Create order
+    integrationName:
+      type: string
+      example: Shopify
+    agentName:
+      type: string
+      example: Order assistant
+    initiatedBy:
+      type: string
+      enum:
+        - user
+        - agent
+    timestamp:
+      type: string
+      format: date-time
+
+OAuthAuthorization:
+  type: object
+  required:
+    - authorizationUrl
+    - state
+  properties:
+    authorizationUrl:
+      type: string
+      format: uri
+    state:
+      type: string
+      description: Opaque state value that must be preserved for the OAuth callback.
+
+ApiKeyCredentials:
+  type: object
+  required:
+    - apiKey
+  properties:
+    apiKey:
+      type: string
+      format: password
+      minLength: 1
+      writeOnly: true
+
+ActionConfiguration:
+  type: object
+  required:
+    - requireApproval
+  properties:
+    requireApproval:
+      type: boolean

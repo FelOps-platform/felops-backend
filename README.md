@@ -7,6 +7,48 @@ npm install
 npm run dev
 ```
 
+## Project Structure
+
+```text
+felops-backend/
+├─ src/
+│  ├─ app.ts                 # Application bootstrap
+│  ├─ server.ts              # HTTP server setup
+│  ├─ config/                # Runtime configuration and environment setup
+│  │  ├─ env.ts
+│  │  ├─ db.ts               # Database connection setup
+│  │  └─ logger.ts
+│  ├─ constants/             # Application constants
+│  ├─ database/              # Database schema and data model definitions
+│  │  └─ schema.ts
+│  ├─ features/              # Feature-specific modules
+│  ├─ integrations/          # External service adapters
+│  │  └─ infisical/
+│  │     └─ fetch-secrets.ts
+│  ├─ middleware/            # Application middleware
+│  ├─ shared/                # Shared utilities and middleware
+│  │  ├─ constants/
+│  │  └─ utils/
+├─ tests/                # Shared utilities and middleware
+│  ├─ unit/
+│  └─ integration/
+├─ docs/                     # Architecture and project documentation
+├─ drizzle/                  # Database migrations and schema snapshots
+├─ scripts/                  # Legacy utility scripts / maintenance tooling
+├─ .husky/                   # Git hooks
+├─ dist/                     # Build output
+├─ package.json              # Scripts and dependencies
+├─ tsconfig.json             # TypeScript config
+├─ drizzle.config.ts         # Drizzle configuration
+├─ vitest.config.ts          # Test configuration
+├─ .env.example              # Example environment variables
+├─ README.md                 # Project overview
+└─ package-lock.json         # Locked dependency tree
+```
+
+The database connection is configured in `src/config/db.ts`, while the
+database schema is defined in `src/database/schema.ts`.
+
 ## Environment
 
 `NODE_ENV` selects the matching Infisical environment (`development`,
@@ -21,8 +63,9 @@ securely; do not commit them.
 
 ## Git Hooks
 
-Before each commit, Husky runs `lint-staged` on staged TypeScript files, runs
-the test suite.
+Before each commit, Husky runs `lint-staged` on staged TypeScript files.
+`lint-staged` applies ESLint fixes and Prettier formatting; the pre-commit hook
+does not run the test suite. Run tests separately with `npm test`.
 
 ## Commands
 

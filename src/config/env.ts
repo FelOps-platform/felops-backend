@@ -17,11 +17,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(allowedNodeEnvs),
   LOG_LEVEL: z.enum(allowedLogLevels),
   PORT: z.coerce.number().int().min(1).max(65535),
+  DATABASE_URL: z.url(),
 });
 
-const config = envSchema.parse({
+const env = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
   ...secrets,
 });
 
-export default config;
+export default env;
