@@ -19,8 +19,8 @@
     "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\"",
     "prepare": "husky",
-    "api:lint": "redocly lint docs/api/openapi.yaml",
-    "api:bundle": "redocly bundle docs/api/openapi.yaml -o docs/api/openapi.bundled.yaml"
+    "api:lint": "redocly lint docs/api-design/openapi.yaml",
+    "api:bundle": "redocly bundle docs/api-design/openapi.yaml -o docs/mintlify/openapi.bundled.yaml"
   },
   "keywords": [],
   "type": "module",
