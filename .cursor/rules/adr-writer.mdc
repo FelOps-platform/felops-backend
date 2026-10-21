@@ -1,0 +1,14 @@
+---
+description: Write an ADR for a significant, hard-to-reverse decision (architecture, data, security, dependencies, deployment, cross-team contracts).
+alwaysApply: false
+---
+
+# ADR writer
+
+Write an ADR only when a decision is hard to reverse or affects architecture, data, security,
+deployment, integrations, or cross-team contracts — not for routine choices.
+
+Name it `docs/adr/ADR-NNNN-short-title.md` (increment N), from
+[`docs/templates/ADR-template.md`](/docs/templates/ADR-template.md). Include context, decision,
+why now, alternatives, consequences/tradeoffs, operational impact (migration/rollback), references.
+Full guidance: @.cursor/skills/adr-writer/SKILL.md

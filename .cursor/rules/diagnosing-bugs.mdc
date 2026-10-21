@@ -1,0 +1,12 @@
+---
+description: Disciplined diagnosis loop for hard bugs and performance regressions. Use when something is broken, throwing, failing, or slow, or the user says "diagnose"/"debug this".
+alwaysApply: false
+---
+
+# Diagnosing bugs
+
+**Build a tight, red-capable feedback loop first** — a single command that reproduces the user's
+exact symptom and goes green when fixed. That is 90% of the work; don't theorize before it exists.
+Then: reproduce + minimise → generate 3–5 falsifiable ranked hypotheses → instrument one variable
+at a time (tag debug logs) → fix with a regression test → clean up and note the root cause.
+Full 6-phase discipline: @.cursor/skills/diagnosing-bugs/SKILL.md

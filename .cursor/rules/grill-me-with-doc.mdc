@@ -1,0 +1,14 @@
+---
+description: Clarify a vague feature/request by grilling requirements, then produce a feature brief. Use before implementation when requirements are unclear, feature-like, or high-risk.
+alwaysApply: false
+---
+
+# Grill me with doc
+
+Before building something unclear, ask about: business goal + target user, current pain vs expected
+behavior, in/out of scope, acceptance criteria, UI/API/data needs, permissions/privacy/security,
+edge cases and priority. Ask concise questions first — don't dump every possible question.
+
+Output a brief in `docs/work/<issue-id-or-slug>/feature.md` using
+[`docs/templates/feature-template.md`](/docs/templates/feature-template.md). Skip the doc for
+trivial, low-risk changes. Full guidance: @.cursor/skills/grill-me-with-doc/SKILL.md

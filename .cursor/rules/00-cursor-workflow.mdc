@@ -1,0 +1,18 @@
+---
+description: Core repository workflow and documentation guidance for Cursor.
+alwaysApply: true
+---
+
+# Repository workflow
+
+Follow AGENTS.md for the shared workflow and safety boundaries, including its optional default-branch sync routine at session start, before branching and final handoff, and during long sessions. Read docs/project-context.md for product goals and constraints, and agent-metadata.md for verified technical facts.
+
+Use this flow when the task warrants it:
+
+clarify meaningful ambiguity → explore → plan substantial work → implement within scope → verify → fresh review → prepare to ship
+
+A clear user request authorizes work within its stated scope. Do not request approval merely to repeat that authorization. If the user asks for a plan only, present the plan and stop. Routine local commits of cohesive, completed, and checked work are authorized by the standing repository instruction; do not ask for approval again. Keep each commit within the authorized task scope and preserve other work. Pushes, merges, and deployments require authorization already provided in the active user instructions; ask before taking those actions when authorization is absent. Continue to ask before scope expansion or other consequential actions the user has not authorized, including destructive operations, production changes, and external messages.
+
+Use project agents under .cursor/agents/ and skills under .cursor/skills/ when available. Follow docs/agent-routing.md for role tier intent: the coordinator resolves host models and runtime capabilities, then binds tiers at launch when supported. Native role metadata stays inherited and does not itself enforce a tier. Codex and other AGENTS.md-aware hosts may use their native role support without an additional provider-specific configuration.
+
+Significant work belongs in one docs/work/<issue-id-or-short-slug>/ folder. Keep agent-metadata.md current when verified stack, architecture, integrations, or agent behavior changes. The stop hook can remind you when code changes lack related documentation.
