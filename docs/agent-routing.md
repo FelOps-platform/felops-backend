@@ -10,6 +10,7 @@ Use model tiers as host-neutral routing intent:
 Before launching agents, the coordinator resolves which models and per-agent routing
 the host runtime supports, then binds each role to its intended tier when possible.
 Tier descriptions do not switch models by themselves. Keep native role frontmatter
-at `model: inherit`; do not add unsupported routing keys. If named roles can only
+at `model: inherit` for Claude Code and Cursor; OpenCode V2 has no inherit value, so
+`.opencode/agents` roles omit `model` instead. Do not add unsupported routing keys. If named roles can only
 inherit the caller's model, state that the intended tier cannot be enforced by the
 role definition and let host-level configuration handle it when available.

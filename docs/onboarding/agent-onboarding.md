@@ -16,7 +16,8 @@ Read in this order:
    before treating its planned flows as local files or executable behavior.
 2. Run `npm ci --prefix api --ignore-scripts` from the root. This uses the existing
    lockfile without installing Git hooks or changing local hook configuration.
-3. Run `bash bin/check-agent-workflow.sh`, then the relevant backend commands in
+3. Run `bash bin/check-agent-workflow.sh` and, when you touch the host config,
+   `bash bin/check-opencode-config.sh`; then run the relevant backend commands in
    `AGENTS.md`. Do not infer that passing workflow checks means app tests pass.
 4. For server startup, obtain bootstrap credentials through the team's existing
    secure process. `api/.env.example` documents the variable names. Never commit
@@ -28,6 +29,10 @@ Keep backend design under `api/docs/` and change records under `docs/work/`.
 For substantial flows, use the team's Design → Implementation → Deployment
 sequence and the work brief's sequence/endpoints/data/failure sections. AI Service
 implementation belongs in the separate AI repository.
+
+If you work in OpenCode, read [.opencode/README.md](../../.opencode/README.md) for
+the ported agents and commands, the approval prompts in `opencode.json`, and the
+docs-reminder behavior.
 
 ## Working habits
 

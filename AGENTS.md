@@ -29,6 +29,7 @@ npm test --prefix api
 
 # Credential-free checks for this agent workflow.
 bash bin/check-agent-workflow.sh
+bash bin/check-opencode-config.sh
 ```
 
 - Startup and the existing health test import Infisical configuration. The test
@@ -110,9 +111,9 @@ Use this only when the repository has a remote and a shared default branch. If t
 
 ## Agent tools and skills
 
-The host agent may use its native subagents and tools. Do not assume a particular provider, model name, or agent configuration is available. Claude Code and Cursor project roles are defined under their respective directories. Follow [docs/agent-routing.md](docs/agent-routing.md): explorers use a fast, low-cost tier; implementers and independent reviewers use a balanced tier. Resolve the host's supported models and bind tiers when possible; document inheritance-only limitations. Native role frontmatter stays at `model: inherit`.
+The host agent may use its native subagents and tools. Do not assume a particular provider, model name, or agent configuration is available. Claude Code, Cursor, and OpenCode project roles are defined under their respective directories. Follow [docs/agent-routing.md](docs/agent-routing.md): explorers use a fast, low-cost tier; implementers and independent reviewers use a balanced tier. Resolve the host's supported models and bind tiers when possible; document inheritance-only limitations. Native role frontmatter stays at `model: inherit` for Claude Code and Cursor; OpenCode V2 has no inherit value, so its `.opencode/agents` roles omit `model` to inherit the caller's model.
 
-Available repeatable workflows are documented under .claude/skills and .cursor/skills: clarification, implementation planning, ADRs, TDD, bug diagnosis, and pull-request preparation.
+Available repeatable workflows live in the host adapters: `.opencode/commands` and `.claude/commands` provide onboard, plan, implement, and ship, and skills under `.claude/skills` (shared by OpenCode) and `.cursor/skills` cover clarification, implementation planning, ADRs, TDD, bug diagnosis, and pull-request preparation.
 
 ## Local helper requirements
 

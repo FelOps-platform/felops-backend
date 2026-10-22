@@ -100,6 +100,8 @@ The backend repository does not implement AI orchestration. AI work belongs to t
 
 Coding-agent routing: explorer uses the fast tier; implementer and reviewer use the balanced tier. The host maps tiers to available models without model pins; see [agent routing](docs/agent-routing.md). This is a development workflow, separate from the product's planned AI Service.
 
+Coding-agent host configuration: each host has its own surface. Claude Code uses `.claude/` and `CLAUDE.md`; Cursor uses `.cursor/`; OpenCode uses `.opencode/` (agents, commands, and a docs-reminder plugin), a repository-root `opencode.json` with approval prompts for migrations, vault/database writes, publishes, and pushes, plus `AGENTS.md`, and reads `.claude/skills` natively. The `.opencode/` files are ports of their `.claude` counterparts, so `.claude/` stays canonical; see [.opencode/README.md](.opencode/README.md). Verified on 2026-10-22 with `opencode debug agents` (explorer, implementer, and reviewer loaded as subagents), `opencode plugin list` (doc-reminder loaded), and `bin/check-opencode-config.sh`, which drives the reminder in a temporary repository; that script is separate from `bin/check-agent-workflow.sh`, which is unchanged. The four OpenCode commands were not listed through the API from this location, so their registration is not independently verified.
+
 ## 11. Deployment and operations
 
 | Field | Value |
@@ -116,6 +118,7 @@ Coding-agent routing: explorer uses the fast tier; implementer and reviewer use 
 - Checks passed: npm run lint --prefix api, npm run typecheck --prefix api, and npm run build --prefix api.
 - npm test --prefix api failed at the import-time Infisical credential guard with credentials cleared, before test collection. No tests were collected; the test suite is not green.
 - Root workflow check, bash bin/check-agent-workflow.sh, passed: configuration, adapter parity, helper syntax, and local workflow links.
+- OpenCode config check, bash bin/check-opencode-config.sh, passed: agent frontmatter, secret-file rules, approval rules, command parity, and the docs-reminder plugin in a temporary repository.
 - Docs PR #1 targets main and was open when checked on 2026-10-22. Treat its proposed docs as unmerged, non-implementation evidence. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
 
 ## 13. Open unknowns
