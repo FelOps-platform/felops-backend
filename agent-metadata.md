@@ -2,7 +2,7 @@
 
 Verified technical and agent state. Paths are repository-relative. Product architecture in docs is labeled planned unless code implements it.
 
-Last inspected: 2026-10-22 (source and docs inspection; backend checks not run)
+Last inspected: 2026-10-22 (source and docs inspection plus backend checks: lint, typecheck, and build passed; the test suite stopped at the Infisical credential guard)
 
 ## 1. Project identity
 

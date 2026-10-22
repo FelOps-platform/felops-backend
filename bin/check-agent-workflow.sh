@@ -47,8 +47,14 @@ assert.equal(cursor.hooks.stop[0].command, 'node .cursor/hooks/doc-reminder.mjs'
 assert.equal(cursor.hooks.stop[0].loop_limit, 2);
 
 // Resolve local Markdown links in workflow records; leave URLs and template placeholders alone.
-const docs = ['AGENTS.md', 'agent-metadata.md', ...files('docs'), '.github/PULL_REQUEST_TEMPLATE.md'];
-for (const file of docs.filter((f) => f.endsWith('.md'))) {
+const docs = [
+  'AGENTS.md',
+  'agent-metadata.md',
+  ...files('docs'),
+  ...files('.cursor/rules'),
+  '.github/PULL_REQUEST_TEMPLATE.md',
+];
+for (const file of docs.filter((f) => f.endsWith('.md') || f.endsWith('.mdc'))) {
   for (const match of read(file).matchAll(/\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
     const target = match[1];
     if (/^(?:[a-z][a-z\d+.-]*:|#)/i.test(target) || /[<>\[\]]/.test(target)) continue;

@@ -101,6 +101,7 @@ Use this only when the repository has a remote and a shared default branch. If t
 ## Project documentation
 
 - docs/project-context.md describes product goals, constraints, terminology, and known unknowns.
+- docs/onboarding/agent-onboarding.md is the entry point for a new contributor; docs/ai-engineering-rules.md applies when changing an LLM-backed feature.
 - agent-metadata.md records verified stack, architecture, integrations, and agent behavior. Update it when those facts change.
 - Significant work gets one folder in docs/work/ containing the brief, plan, and optional verification notes. Use an issue identifier when one is supplied; otherwise use a short descriptive slug.
 - Use the lifecycle Draft → Planned → In Progress → Done. Record a blocking decision as Awaiting input. Mark work Done only after its acceptance criteria and relevant verification are complete.

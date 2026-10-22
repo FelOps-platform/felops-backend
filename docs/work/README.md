@@ -3,7 +3,7 @@
 Keep substantial work together in one folder:
 
 docs/work/<issue-id-or-short-slug>/
-  feature.md   brief and acceptance criteria
+  brief.md     brief and acceptance criteria
   plan.md      approach, scope, and verification
   qa.md        optional evidence and follow-up notes
 

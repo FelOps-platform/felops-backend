@@ -43,5 +43,6 @@ baseline limitation. Workflow CI checks the agent setup only.
 
 ## Delivery
 
-Local preparation only, as requested after the access check. The branch targets
-`main`. No push, GitHub PR, merge, or deployment has been performed.
+The branch targets `main`. It was pushed to `origin/chore/agent-seed-adoption` and
+opened as PR #2 on 2026-10-22. No merge or deployment has been performed; the merge
+is left to the requester.

@@ -30,5 +30,5 @@ business endpoints, an MCP runtime, database migrations, AI orchestration, or
 deployment. Existing `api/docs/` material remains in place. Documentation PR #1
 is considered for compatibility but is not merged or treated as implementation.
 
-Publishing is deferred: the account currently has read access and private forks
-are disabled; the requester selected local preparation for now.
+Publishing: the branch was pushed to `origin/chore/agent-seed-adoption` and opened
+as PR #2 on 2026-10-22. The merge is left to the requester.
