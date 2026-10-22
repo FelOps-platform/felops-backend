@@ -8,3 +8,11 @@ npm-debug.log*
 .env.*
 !.env.example
 .vscode
+
+# Agent host settings and session state stay local.
+.claude/settings.local.json
+.claude/*.local.json
+.cursor/settings.local.json
+.cursor/*.local.json
+.omo/
+.superpowers/
