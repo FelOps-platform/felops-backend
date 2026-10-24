@@ -1,6 +1,6 @@
 # Project context
 
-Source and docs inspected 2026-10-22. Product descriptions below distinguish current code from proposed workflows.
+Source and docs inspected 2026-10-24. Product descriptions below distinguish current code from proposed workflows.
 
 ## Product
 
@@ -26,7 +26,8 @@ Source and docs inspected 2026-10-22. Product descriptions below distinguish cur
 - The backend code and npm scripts are under api/. The mcp-server directory is a package placeholder. [api/package.json](../api/package.json), [mcp-server/package.json](../mcp-server/package.json)
 - API startup requires Infisical bootstrap credentials and validates runtime settings including LOG_LEVEL, PORT, and DATABASE_URL. This runtime secret integration does not specify access to user or workspace vault data. [api/.env.example](../api/.env.example), [api/src/config/env.ts](../api/src/config/env.ts)
 - Hosting, deployment target, and production runtime requirements are unknown; do not infer them from the package scripts.
-- Documentation PR #1 targets main and was still open when checked on 2026-10-22. Its proposed Sprint 1 flow and other docs are not evidence of implemented behavior. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
+- The canonical [architecture](../api/docs/architecture.md) and [database design](../api/docs/database.md) describe proposed behavior. Edit them in place and link them from sprint and work records; they are not evidence of implementation.
+- The team's API endpoint contracts and request/response mocks are to be designed in Apidog after the database revision and workspace invitation. No accessible workspace URL or completed contract is established here. [API setup](../api/README.md)
 
 ## Terminology
 
@@ -42,12 +43,13 @@ Source and docs inspected 2026-10-22. Product descriptions below distinguish cur
 ## Open decisions
 
 - Product credentials: Will the MCP Server read workspace secrets directly from the vault, or receive them per request from the backend? Infisical access in the API currently retrieves application runtime configuration only; it does not settle product vault access.
-- Rules synchronization: The pending design has the Backend save rules in PostgreSQL and MCP enforce them. Will MCP keep its own copy or query the backend each time? This contract is unresolved and no MCP runtime implements it.
+- Rules synchronization: The planned design has the Backend save rules in PostgreSQL and MCP enforce them. Will MCP keep its own copy or query the backend each time? This contract is unresolved and no MCP runtime implements it.
+- Database revision: Session identity, the agent/channel relationship, and reconciliation with the other proposed schema remain open in the [database design](../api/docs/database.md). Endpoint design must account for that revision.
 
 ## Sources
 
 - [API package and lockfile](../api/package.json), [API README](../api/README.md), and [MCP package](../mcp-server/package.json)
 - [API app](../api/src/app.ts), [runtime config](../api/src/config/env.ts), [Infisical adapter](../api/src/integrations/infisical/fetch-secrets.ts), [database module](../api/src/config/db.ts), and [schema](../api/src/database/schema.ts)
-- [Architecture](../api/docs/architecture.md), [actions](../api/docs/features/actions.md), and [integrations](../api/docs/features/integrations.md)
+- [Architecture](../api/docs/architecture.md), [database](../api/docs/database.md), [team workflow](../api/docs/workflow.md), [actions](../api/docs/features/actions.md), and [integrations](../api/docs/features/integrations.md)
 - [Adoption brief](work/agent-seed-adoption/brief.md) and [adoption plan](work/agent-seed-adoption/plan.md)
-- [Pending documentation PR #1](https://github.com/FelOps-platform/felops-backend/pull/1), checked open against main on 2026-10-22
+- [Documentation consolidation](work/documentation-consolidation/brief.md) and [verification](work/documentation-consolidation/qa.md)

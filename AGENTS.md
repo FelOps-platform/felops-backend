@@ -46,17 +46,21 @@ bash bin/check-opencode-config.sh
 
 ## Team design workflow
 
-Use the team's **Design → Implementation → Deployment** sprint sequence. The
-agent delivery loop below fits inside it and does not replace the team's design
-documents or authorize deployment. For a substantial workflow, capture the main
-sequence, endpoints, data model, important failure cases, and deferred scope.
+Follow the team's [Design → Implementation → Deployment workflow](api/docs/workflow.md).
+The agent delivery loop below fits inside that sequence; it does not authorize
+deployment.
 
-`api/docs/` holds backend architecture, feature, and API design material.
-`docs/` holds the shared coding-agent workflow and work records. Link to the
-relevant backend document rather than duplicating it. Gaper's documentation
-[PR #1](https://github.com/FelOps-platform/felops-backend/pull/1) is a pending
-planning source; check its current merge state before citing its files as local
-facts. Do not restructure its files as part of framework setup.
+- `api/docs/architecture.md` is the canonical living system design;
+  `api/docs/database.md` is the canonical living database design. Edit them in
+  place when the design changes. Planned design does not prove implemented code.
+- `api/docs/` also holds sprint scope and feature context. `docs/` holds the
+  shared coding-agent workflow, decisions, and change records.
+- Sprint, feature, and work records link to the relevant canonical designs and
+  describe the change. Do not split the current architecture or schema across
+  task files. Update affected canonical documents in the same change.
+- API endpoint contracts and request/response mocks belong in the team's Apidog
+  workspace. Its invitation and the database revision are pending; do not invent
+  a workspace URL or completed contract. See [API setup](api/README.md).
 
 ## Working with requests
 
@@ -105,6 +109,7 @@ When the repository has a remote and a shared default branch, this is required. 
 - docs/onboarding/agent-onboarding.md is the entry point for a new contributor; docs/ai-engineering-rules.md applies when changing an LLM-backed feature.
 - agent-metadata.md records verified stack, architecture, integrations, and agent behavior. Update it when those facts change.
 - Significant work gets one folder in docs/work/ containing the brief, plan, and optional verification notes. Use an issue identifier when one is supplied; otherwise use a short descriptive slug.
+- Work folders record the goal, design changes, decisions, and verification. Link the current architecture, database design, and API contracts rather than copying them.
 - Use the lifecycle Draft → Planned → In Progress → Done. Record a blocking decision as Awaiting input. Mark work Done only after its acceptance criteria and relevant verification are complete.
 - Record durable architecture decisions in sequential docs/adr/ entries. Do not create ADRs for routine, reversible choices.
 - Keep formal change records with their work folder; keep personal scratch notes and raw private evidence outside this repository. Do not create a generic notes or archive area.

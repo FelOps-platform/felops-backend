@@ -1,59 +1,72 @@
 # Actions
 
-## 1. Overview
-This document includes the workflows, API endpoints, database design related to actions.
+**Status: Proposed.** This document describes intended product behavior. The
+current API implements only `GET /api/v1/health`; action routes and execution
+history are not implemented.
 
-## 2. Workflows
+## Workflows
 
-### 2.1 Viewing Workspace Actions
-1. User navigates to the actions page.
-2. Frontend fetches the list of available actions from the backend.
-3. Backend fetches integrations connected to this workspace and returns a map of integrations to an array of their respective actions.
-  - Each action includes the following information:
-    - Name
-    - Description
-4. Frontend displays the list of actions grouped by integration.
-5. User can filter the actions by integration or search for a specific action using a search bar.
+### Viewing workspace actions
 
-### 2.2 Viewing Agent Allowed Actions
-1. User navigates to the agent actions page.
-2. Frontend fetches the list of allowed actions for the selected agent from the backend.
-3. Backend fetches integrations connected to the workspace and returns a map of integrations to an array of their respective actions.
-  - Each action includes the following:
-    - Name
-    - Description
-4. Frontend displays the list of allowed actions grouped by integration.
-5. User can filter the actions by integration or search for a specific action using a search bar.
-6. User can select the action they want to allow for the agent.
-  - Frontend sends the selected action to the backend.
-  - Backend updates the allowed actions for the agent in the database.
-7. For allowed actions, user can configure it to require approval before execution.
-  - Frontend sends the require approval flag to the backend.
-  - Backend updates the action configuration for the agent in the database.
+1. The user opens the actions page.
+2. The frontend requests available actions from the backend.
+3. The backend returns actions for integrations connected to the workspace,
+   grouped by integration. Each action includes its name and description.
+4. The frontend displays the groups and lets the user filter by integration or
+   search by name.
 
-### 2.3 Viewing Workspace Execution History
-1. User navigates to the execution history page.
-2. Frontend fetches the list of executed actions from all agents in the workspace from the backend.
-3. Backend returns a list of executed actions with the following information:
-  - Action Name
-  - Integration Name
-  - Agent Name
-  - Timestamp
-4. Frontend displays the list of executed actions in a table format.
+### Viewing and configuring an agent's allowed actions
 
-### 2.4 Viewing Agent Execution History
-1. User navigates to the agent execution history page.
-2. Frontend fetches the list of executed actions for the selected agent from the backend.
-3. Backend returns a list of executed actions with the following information:
-  - Action Name
-  - Integration Name
-  - Initiated By: User / Agent (auto)
-  - Timestamp
-4. Frontend displays the list of executed actions in a table format.
+1. The user opens the actions page for an agent.
+2. The frontend requests that agent's allowed actions.
+3. The backend returns the connected integrations' actions, grouped by
+   integration. Each action includes its name and description.
+4. The frontend displays the groups and lets the user filter by integration or
+   search by name.
+5. The user selects actions to allow for the agent; the frontend sends the
+   selection and the backend updates the agent's allowed actions.
+6. The proposal also lets the user mark an allowed action as requiring approval.
+   Approval-dependent execution is outside Sprint 1 because the Approval
+   Service is excluded; the Sprint 1 path must use an action that does not
+   require approval.
 
-### 3. API Endpoints
+### Viewing execution history
 
-### 4. Database Design
+1. The user opens workspace or agent execution history.
+2. The frontend requests executed actions for the selected scope.
+3. The backend returns the proposed history fields:
+   - Workspace view: action name, integration name, agent name, and timestamp.
+   - Agent view: action name, integration name, initiator (user or automatic
+     agent), and timestamp.
+4. The frontend displays the results in a table.
 
-### 5. Future Work
-- Creating custom actions
+## Failure cases awaiting contract design
+
+The happy paths above are proposals, not complete workflow designs. Define the
+user-visible errors, retry behavior, and cleanup in the Apidog contract phase:
+
+- **F1 — Viewing actions, steps 2–3; configuring actions, step 5:** reject an
+  unauthorized request or a workspace/agent mismatch; specify the error
+  response without disclosing another workspace's actions.
+- **F2 — Configuring allowed actions, step 5:** decide the response and cleanup
+  when validation or persistence fails, so a retry cannot leave a partial
+  action selection unnoticed.
+- **F3 — Viewing execution history, steps 2–3:** distinguish an empty history
+  from a failed lookup and define the response for each.
+
+These cases need design before the corresponding endpoints are implemented.
+
+## Contract and schema references
+
+- Keep the proposed action data model and open decisions in the canonical
+  [Database](../database.md).
+- Keep the proposed system flow and the Backend/MCP responsibility boundary in
+  [Architecture](../architecture.md).
+- Design API endpoints, request/response examples, and mocks in Apidog after the
+  pending database revision and workspace invitation. No endpoint contract is
+  defined here; server implementation follows that design. See
+  [Product Workflow](../workflow.md).
+
+## Future work
+
+- Creating custom actions.

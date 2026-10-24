@@ -11,9 +11,10 @@ Read in this order:
 
 ## FelOps first run
 
-1. Read the relevant `api/docs/` design material. Check the status of pending
-   [documentation PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
-   before treating its planned flows as local files or executable behavior.
+1. Read the [team workflow](../../api/docs/workflow.md),
+   [architecture](../../api/docs/architecture.md),
+   [database design](../../api/docs/database.md), and relevant sprint/feature
+   material. These describe planned flows; inspect code to establish behavior.
 2. Run `npm ci --prefix api --ignore-scripts` from the root. This uses the existing
    lockfile without installing Git hooks or changing local hook configuration.
 3. Run `bash bin/check-agent-workflow.sh` and, when you touch the host config,
@@ -25,10 +26,11 @@ Read in this order:
 5. The only implemented HTTP route is `GET /api/v1/health`; `mcp-server/` has no
    server implementation. Verify the source again when taking a product task.
 
-Keep backend design under `api/docs/` and change records under `docs/work/`.
-For substantial flows, use the team's Design → Implementation → Deployment
-sequence and the work brief's sequence/endpoints/data/failure sections. AI Service
-implementation belongs in the separate AI repository.
+Keep architecture and database design in their canonical files under `api/docs/`.
+Work records under `docs/work/` link to these designs and describe the change;
+update the canonical files in place. Follow the team workflow for substantial
+flow designs and [API setup](../../api/README.md) for the pending Apidog contract
+and mock handoff. AI Service implementation belongs in the separate AI repository.
 
 If you work in OpenCode, read [.opencode/README.md](../../.opencode/README.md) for
 the ported agents and commands, the approval prompts in `opencode.json`, and the
