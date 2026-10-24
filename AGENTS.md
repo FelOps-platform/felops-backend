@@ -46,17 +46,21 @@ bash bin/check-opencode-config.sh
 
 ## Team design workflow
 
-Use the team's **Design → Implementation → Deployment** sprint sequence. The
-agent delivery loop below fits inside it and does not replace the team's design
-documents or authorize deployment. For a substantial workflow, capture the main
-sequence, endpoints, data model, important failure cases, and deferred scope.
+Follow the team's [Design → Implementation → Deployment workflow](api/docs/workflow.md).
+The agent delivery loop below fits inside that sequence; it does not authorize
+deployment.
 
-`api/docs/` holds backend architecture, feature, and API design material.
-`docs/` holds the shared coding-agent workflow and work records. Link to the
-relevant backend document rather than duplicating it. Gaper's documentation
-[PR #1](https://github.com/FelOps-platform/felops-backend/pull/1) is a pending
-planning source; check its current merge state before citing its files as local
-facts. Do not restructure its files as part of framework setup.
+- `api/docs/architecture.md` is the canonical living system design;
+  `api/docs/database.md` is the canonical living database design. Edit them in
+  place when the design changes. Planned design does not prove implemented code.
+- `api/docs/` also holds sprint scope and feature context. `docs/` holds the
+  shared coding-agent workflow, decisions, and change records.
+- Sprint, feature, and work records link to the relevant canonical designs and
+  describe the change. Do not split the current architecture or schema across
+  task files. Update affected canonical documents in the same change.
+- API endpoint contracts and request/response mocks belong in the team's Apidog
+  workspace. Its invitation and the database revision are pending; do not invent
+  a workspace URL or completed contract. See [API setup](api/README.md).
 
 ## Working with requests
 
@@ -85,16 +89,16 @@ facts. Do not restructure its files as part of framework setup.
 - Verify each commit and report its hash and any remaining work. Do not amend or rewrite published history without explicit authorization.
 - Local commit authorization does not itself authorize a push, merge, or deployment. When the user has already requested one of those actions, complete it within that scope without asking again, synchronize with the latest remote state first, and verify the result.
 
-## Keep the local default branch current (optional)
+## Keep the local default branch current
 
-Use this only when the repository has a remote and a shared default branch. If there is no remote, skip it.
+When the repository has a remote and a shared default branch, this is required. If there is no remote, skip it.
 
-- At session start, before a new task or branch, at checkpoints, and before handoff, refresh remote state and fast-forward the local default branch when it is clean and safe. Routine fetches and non-destructive fast-forwards are already authorized; do not ask each time.
+- At every session start, refresh remote state and safely update the local default branch to include the latest remote commits. Before creating any feature branch or worktree from local main/default, refresh remote state and ensure the local default includes those commits. Also refresh at checkpoints and before handoff. Routine fetches and safe fast-forwards are already authorized; do not ask each time.
 - Resolve the default branch from `origin/HEAD`; fall back to the branch named by the remote, then `main`, then `master`. Do not assume a branch name.
 - If the default branch is checked out and clean, use `git pull --ff-only`.
 - If it is not checked out, use `git fetch origin <default>:<default>` without force.
-- If it is checked out in another worktree, update it only when that worktree is safe and coordinated; never bypass Git's protection.
-- If it has unfinished changes, fetch remote state and preserve the files. If local and remote history diverge, report the divergence and resolve it within the authorized task; never force a fast-forward failure through.
+- If it is checked out in another worktree, update it only when that worktree is safe and coordinated; never bypass Git's protection. If it cannot be safely updated, do not create a branch or worktree from stale local state; preserve work and report the blocker.
+- If it has unfinished changes or local and remote history diverges, preserve the files and report the blocker. Do not create a branch or worktree from stale local state; never force a fast-forward failure through.
 - Compare an active feature branch with the latest `origin/<default>` before shipping. Integrate upstream changes when safe, run relevant checks, and preserve other contributors' work.
 - Never discard edits, reset history, automatically stash work, force-update a branch, or perform an unsolicited push or merge to make synchronization succeed. Report any remaining blocker.
 - This is a workflow rule, not a background scheduler.
@@ -105,6 +109,7 @@ Use this only when the repository has a remote and a shared default branch. If t
 - docs/onboarding/agent-onboarding.md is the entry point for a new contributor; docs/ai-engineering-rules.md applies when changing an LLM-backed feature.
 - agent-metadata.md records verified stack, architecture, integrations, and agent behavior. Update it when those facts change.
 - Significant work gets one folder in docs/work/ containing the brief, plan, and optional verification notes. Use an issue identifier when one is supplied; otherwise use a short descriptive slug.
+- Work folders record the goal, design changes, decisions, and verification. Link the current architecture, database design, and API contracts rather than copying them.
 - Use the lifecycle Draft → Planned → In Progress → Done. Record a blocking decision as Awaiting input. Mark work Done only after its acceptance criteria and relevant verification are complete.
 - Record durable architecture decisions in sequential docs/adr/ entries. Do not create ADRs for routine, reversible choices.
 - Keep formal change records with their work folder; keep personal scratch notes and raw private evidence outside this repository. Do not create a generic notes or archive area.

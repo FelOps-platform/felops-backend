@@ -2,7 +2,7 @@
 
 Verified technical and agent state. Paths are repository-relative. Product architecture in docs is labeled planned unless code implements it.
 
-Last inspected: 2026-10-22 (source and docs inspection plus backend checks: lint, typecheck, and build passed; the test suite stopped at the Infisical credential guard)
+Last inspected: 2026-10-24. Current documentation and tooling verification is recorded in [documentation consolidation QA](docs/work/documentation-consolidation/qa.md); earlier authenticated-test limitations are recorded below.
 
 ## 1. Project identity
 
@@ -51,9 +51,9 @@ The mcp-server package is CommonJS metadata with a placeholder test script; it h
 
 - api/src/: Express app, runtime configuration, Infisical adapter, database setup, and schema.
 - api/tests/: currently one integration test for the health route.
-- api/docs/: architecture and proposed feature workflows.
+- api/docs/: canonical architecture and database designs, team workflow, sprint scope, and proposed feature context.
 - mcp-server/: package placeholder only.
-- docs/: contributor workflow and Agent Seed adoption materials.
+- docs/: contributor workflow, task/change records, templates, and architecture decisions. These link to the canonical product designs rather than copying them.
 
 ## 6. Key files
 
@@ -66,6 +66,8 @@ The mcp-server package is CommonJS metadata with a placeholder test script; it h
 | [api/src/database/schema.ts](api/src/database/schema.ts) | Current users table schema |
 | [api/package.json](api/package.json) | API scripts and dependencies |
 | [api/docs/architecture.md](api/docs/architecture.md) | Proposed system architecture |
+| [api/docs/database.md](api/docs/database.md) | Canonical proposed schema, relationships, and unresolved questions |
+| [api/docs/workflow.md](api/docs/workflow.md) | Team sprint sequence and design maintenance |
 | [mcp-server/package.json](mcp-server/package.json) | MCP package placeholder |
 
 ## 7. Configuration and secrets
@@ -114,14 +116,13 @@ Coding-agent host configuration: each host has its own surface. Claude Code uses
 
 ## 12. Verification and evidence
 
-- Dependency install passed: npm ci --prefix api --ignore-scripts --no-audit --no-fund (402 packages).
-- Checks passed: npm run lint --prefix api, npm run typecheck --prefix api, and npm run build --prefix api.
-- npm test --prefix api failed at the import-time Infisical credential guard with credentials cleared, before test collection. No tests were collected; the test suite is not green.
-- Root workflow check, bash bin/check-agent-workflow.sh, passed: configuration, adapter parity, helper syntax, and local workflow links.
-- OpenCode config check, bash bin/check-opencode-config.sh, passed: agent frontmatter, secret-file rules, approval rules, command parity, and the docs-reminder plugin in a temporary repository.
-- Docs PR #1 targets main and was open when checked on 2026-10-22. Treat its proposed docs as unmerged, non-implementation evidence. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
+- Current checks and independent review: [documentation consolidation QA](docs/work/documentation-consolidation/qa.md).
+- On 2026-10-22, `npm ci --prefix api --ignore-scripts --no-audit --no-fund`, API lint, typecheck, build, and both agent-workflow scripts passed.
+- On that check, `npm test --prefix api` failed at the import-time Infisical credential guard with credentials cleared, before test collection. The application test suite was not green; this documentation change does not claim authenticated runtime verification.
+- API contracts and request/response mocks are planned in Apidog. The retired local OpenAPI/Mintlify files are no longer maintained. Workspace access and the database revision are pending; see [API setup](api/README.md).
 
 ## 13. Open unknowns
 
-- Product credentials: Will the MCP Server read workspace secrets directly from the vault, or receive them per request from the backend? API Infisical bootstrap access only establishes application configuration retrieval, not this product contract. [Pending PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
-- Rules synchronization: The planned Backend saves rules in PostgreSQL and MCP enforces them. Will MCP keep a copy or query the backend each time? This access contract remains unresolved; no MCP runtime implements it. [Pending PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
+- Product credentials: Will the MCP Server read workspace secrets directly from the vault, or receive them per request from the backend? API Infisical bootstrap access only establishes application configuration retrieval, not this product contract. See [architecture](api/docs/architecture.md).
+- Rules synchronization: The planned Backend saves rules in PostgreSQL and MCP enforces them. Will MCP keep a copy or query the backend each time? This access contract remains unresolved; no MCP runtime implements it. See [architecture](api/docs/architecture.md).
+- Database revision: Session identity, the agent/channel relationship, and reconciliation with the other proposed schema remain open. See [database design](api/docs/database.md).

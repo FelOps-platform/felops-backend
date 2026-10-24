@@ -14,13 +14,18 @@ included commands. In other hosts, follow the same steps from `AGENTS.md`.
 
 For substantial changes, copy the [brief](../templates/feature-template.md) and
 [plan](../templates/implementation-plan-template.md) into one `docs/work/<item>/`
-folder. Use a supplied issue ID or a short task name. Link existing backend
-designs in `api/docs/`. Durable architecture decisions go in `docs/adr/`.
+folder. Use a supplied issue ID or a short task name. Link the canonical
+[architecture](../../api/docs/architecture.md) and
+[database design](../../api/docs/database.md); update those files in place when
+the design changes. A work brief describes the change and its acceptance
+criteria, rather than holding a separate copy of the current design. Durable
+architecture decisions go in `docs/adr/` with links to the affected design.
 
-The team's Design → Implementation → Deployment process remains the sprint
-structure. Work briefs capture the sequence, endpoints, data, important failures,
-and deferred scope needed for workflow LLDs. Deployment requires its own
-authorization; completion of a coding task does not initiate it.
+The [team workflow](../../api/docs/workflow.md) defines the sprint's
+Design → Implementation → Deployment sequence and workflow design contents.
+This agent loop supplies task execution, verification, and review within it.
+Deployment requires its own authorization; completion of a coding task does
+not initiate it.
 
 ## Verify and review
 
