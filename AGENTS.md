@@ -85,16 +85,16 @@ facts. Do not restructure its files as part of framework setup.
 - Verify each commit and report its hash and any remaining work. Do not amend or rewrite published history without explicit authorization.
 - Local commit authorization does not itself authorize a push, merge, or deployment. When the user has already requested one of those actions, complete it within that scope without asking again, synchronize with the latest remote state first, and verify the result.
 
-## Keep the local default branch current (optional)
+## Keep the local default branch current
 
-Use this only when the repository has a remote and a shared default branch. If there is no remote, skip it.
+When the repository has a remote and a shared default branch, this is required. If there is no remote, skip it.
 
-- At session start, before a new task or branch, at checkpoints, and before handoff, refresh remote state and fast-forward the local default branch when it is clean and safe. Routine fetches and non-destructive fast-forwards are already authorized; do not ask each time.
+- At every session start, refresh remote state and safely update the local default branch to include the latest remote commits. Before creating any feature branch or worktree from local main/default, refresh remote state and ensure the local default includes those commits. Also refresh at checkpoints and before handoff. Routine fetches and safe fast-forwards are already authorized; do not ask each time.
 - Resolve the default branch from `origin/HEAD`; fall back to the branch named by the remote, then `main`, then `master`. Do not assume a branch name.
 - If the default branch is checked out and clean, use `git pull --ff-only`.
 - If it is not checked out, use `git fetch origin <default>:<default>` without force.
-- If it is checked out in another worktree, update it only when that worktree is safe and coordinated; never bypass Git's protection.
-- If it has unfinished changes, fetch remote state and preserve the files. If local and remote history diverge, report the divergence and resolve it within the authorized task; never force a fast-forward failure through.
+- If it is checked out in another worktree, update it only when that worktree is safe and coordinated; never bypass Git's protection. If it cannot be safely updated, do not create a branch or worktree from stale local state; preserve work and report the blocker.
+- If it has unfinished changes or local and remote history diverges, preserve the files and report the blocker. Do not create a branch or worktree from stale local state; never force a fast-forward failure through.
 - Compare an active feature branch with the latest `origin/<default>` before shipping. Integrate upstream changes when safe, run relevant checks, and preserve other contributors' work.
 - Never discard edits, reset history, automatically stash work, force-update a branch, or perform an unsolicited push or merge to make synchronization succeed. Report any remaining blocker.
 - This is a workflow rule, not a background scheduler.
