@@ -2,6 +2,8 @@
 
 This is the TypeScript/Express API scaffold. The only implemented HTTP route is
 `GET /api/v1/health`; product workflows in the design documents remain planned.
+The MCP runtime is planned as a module embedded in this API service, with no code
+yet ([ADR-0002](../docs/adr/ADR-0002-embed-mcp-in-api-service.md)).
 
 ## Setup
 
@@ -42,19 +44,21 @@ and build do not.
 - `src/config/` and `src/integrations/infisical/`: runtime configuration,
   database connection, logging, and secret retrieval.
 - `src/database/schema.ts` and `drizzle/`: Drizzle schema and migrations.
+- The planned MCP module will live under `src/`; no MCP code exists yet
+  ([ADR-0002](../docs/adr/ADR-0002-embed-mcp-in-api-service.md)).
 - `tests/`: backend test suite.
-- `docs/`: backend architecture, database, feature, and workflow documents.
 
 ## Design and contributor docs
 
-- Backend: [Architecture](docs/architecture.md), [Database](docs/database.md),
-  [Workflow](docs/workflow.md), [Actions](docs/features/actions.md), and
-  [Integrations](docs/features/integrations.md).
+- Project: [Documentation entry](../docs/README.md),
+  [Architecture](../docs/architecture.md), [Database](../docs/database.md), and
+  [Delivery](../docs/delivery.md).
 - Contributors: [Repository instructions](../AGENTS.md),
   [Agent onboarding](../docs/onboarding/agent-onboarding.md),
   [Project context](../docs/project-context.md), and
   [Verified metadata](../agent-metadata.md).
 
-Apidog is the intended source for API contracts and mocks. Workspace invitation
-and access, along with the database design revision, are pending. No Apidog
-workspace URL or existing mock collection is documented here.
+Apidog is the intended source for API contracts and mocks; see the
+[Delivery handoff](../docs/delivery.md#current-handoff). Workspace invitation and
+the database design revision are pending. No Apidog workspace URL or existing
+mock collection is documented here.

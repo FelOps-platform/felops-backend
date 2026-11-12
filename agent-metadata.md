@@ -2,7 +2,7 @@
 
 Verified technical and agent state. Paths are repository-relative. Product architecture in docs is labeled planned unless code implements it.
 
-Last inspected: 2026-10-24. Current documentation and tooling verification is recorded in [documentation consolidation QA](docs/work/documentation-consolidation/qa.md); earlier authenticated-test limitations are recorded below.
+Last inspected: 2026-11-12. Documentation paths and the MCP boundary were verified during the SDD restructure (implementation checks 2026-11-01; fresh review 2026-11-12) and are recorded in the [SDD documentation restructure QA](docs/work/sdd-docs-restructure/qa.md). Earlier documentation and tooling verification is recorded in [documentation consolidation QA](docs/work/documentation-consolidation/qa.md). Earlier authenticated-test limitations are recorded below.
 
 ## 1. Project identity
 
@@ -10,24 +10,24 @@ Last inspected: 2026-10-24. Current documentation and tooling verification is re
 | --- | --- | --- |
 | Project name | FelOps Backend | [api/package.json](api/package.json), [api/README.md](api/README.md) |
 | Owner / team | FelOps-platform repository | [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1) |
-| Status | Scaffold: the API currently implements a health route; product workflows remain planned | [api/src/app.ts](api/src/app.ts), [api/docs/architecture.md](api/docs/architecture.md) |
+| Status | Scaffold: the API currently implements a health route; product workflows remain planned | [api/src/app.ts](api/src/app.ts), [docs/architecture.md](docs/architecture.md) |
 | Repository | FelOps-platform/felops-backend | [adoption plan](docs/work/agent-seed-adoption/plan.md) |
 | Default branch | main (PR #1 targets main) | [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1) |
 | License | Unknown | Not established by inspected project sources |
 
 ## 2. Purpose and scope
 
-- Problem: Product docs describe a multi-tenant automation platform connecting workspace users, agents, and external business systems. This is intended design, not current API behavior. [api/docs/architecture.md](api/docs/architecture.md), [api/docs/features/integrations.md](api/docs/features/integrations.md)
-- Users: Backend contributors; the product docs describe workspace users configuring integrations and agent actions. [api/docs/features/actions.md](api/docs/features/actions.md)
+- Problem: Product docs describe a multi-tenant automation platform connecting workspace users, agents, and external business systems. This is intended design, not current API behavior. [docs/architecture.md](docs/architecture.md)
+- Users: Backend contributors; the product docs describe workspace users configuring integrations and agent actions. [docs/architecture.md](docs/architecture.md)
 - Implemented success: GET /api/v1/health returns status ok. [api/src/app.ts](api/src/app.ts), [api/tests/integration/app.test.ts](api/tests/integration/app.test.ts)
 - Non-goals for this adoption: business endpoints, MCP runtime, database migrations, AI orchestration, and deployment. [brief](docs/work/agent-seed-adoption/brief.md)
-- Limitation: Treat feature and architecture docs as proposed behavior unless backed by API code.
+- Limitation: Treat architecture and database docs as proposed behavior unless backed by API code.
 
 ## 3. Stack and commands
 
 | Area | Verified value | Source |
 | --- | --- | --- |
-| Languages | TypeScript API; mcp-server has package metadata only | [api/package.json](api/package.json), [mcp-server/package.json](mcp-server/package.json) |
+| Languages | TypeScript API; the MCP runtime is planned as an embedded module with no code yet | [api/package.json](api/package.json), [ADR-0002](docs/adr/ADR-0002-embed-mcp-in-api-service.md) |
 | Frameworks | Express 5, Zod, Pino, Drizzle ORM, node-postgres | [api/package.json](api/package.json) |
 | Package manager | npm; API lockfile is present | [api/package-lock.json](api/package-lock.json) |
 | Build | cd api && npm run build | [api/package.json](api/package.json) |
@@ -35,9 +35,9 @@ Last inspected: 2026-10-24. Current documentation and tooling verification is re
 | Lint / format | cd api && npm run lint; cd api && npm run format:check | [api/package.json](api/package.json) |
 | Type check | cd api && npm run typecheck | [api/package.json](api/package.json) |
 
-TypeScript tooling versions are intentionally split between TypeScript 7 for compilation and a TypeScript 6 compatibility dependency for tooling, as documented in [api/docs/clarifications/typescript-tooling.md](api/docs/clarifications/typescript-tooling.md).
+TypeScript tooling versions are intentionally split between TypeScript 7 for compilation and a TypeScript 6 compatibility dependency for tooling, as recorded in [ADR-0001](docs/adr/ADR-0001-typescript-7-tooling.md).
 
-The mcp-server package is CommonJS metadata with a placeholder test script; it has no server implementation in this repository. [mcp-server/package.json](mcp-server/package.json)
+The MCP runtime is planned as a module embedded in the API service; no MCP code or package exists in this repository. [ADR-0002](docs/adr/ADR-0002-embed-mcp-in-api-service.md)
 
 ## 4. Architecture
 
@@ -45,15 +45,14 @@ The mcp-server package is CommonJS metadata with a placeholder test script; it h
 - Runtime configuration: [api/src/config/env.ts](api/src/config/env.ts) loads dotenv, fetches secrets, then validates NODE_ENV, LOG_LEVEL, PORT, and DATABASE_URL with Zod. [api/src/integrations/infisical/fetch-secrets.ts](api/src/integrations/infisical/fetch-secrets.ts) uses Infisical Universal Auth and selects the environment named by NODE_ENV. Missing bootstrap credentials fail startup; an unset or unrecognized NODE_ENV falls back to development.
 - Database: [api/src/config/db.ts](api/src/config/db.ts) configures a PostgreSQL pool and Drizzle. [api/src/database/schema.ts](api/src/database/schema.ts) currently defines a users table. The health route does not use the database.
 - Logging: Pino and pino-http are configured in [api/src/config/logger.ts](api/src/config/logger.ts); development uses pino-pretty.
-- Boundaries: api/ contains the implemented backend scaffold. AI work lives in the separate felops-ai project (task-provided boundary); this repository's architecture doc describes the AI service as a separate FastAPI component. The local mcp-server package is only a placeholder. [api/docs/architecture.md](api/docs/architecture.md), [mcp-server/package.json](mcp-server/package.json)
+- Boundaries: api/ contains the implemented backend scaffold. AI work lives in the separate felops-ai project (task-provided boundary); this repository's architecture doc describes the AI service as a separate FastAPI component. The MCP runtime is planned as a module embedded in the API service and has no code yet. [docs/architecture.md](docs/architecture.md), [ADR-0002](docs/adr/ADR-0002-embed-mcp-in-api-service.md)
 
 ## 5. Repository map
 
 - api/src/: Express app, runtime configuration, Infisical adapter, database setup, and schema.
 - api/tests/: currently one integration test for the health route.
-- api/docs/: canonical architecture and database designs, team workflow, sprint scope, and proposed feature context.
-- mcp-server/: package placeholder only.
-- docs/: contributor workflow, task/change records, templates, and architecture decisions. These link to the canonical product designs rather than copying them.
+- docs/: project constitution (README, project context, architecture, database, delivery), contributor workflow, task/change records, templates, and architecture decisions. These link to the canonical product designs rather than copying them.
+- bin/: credential-free workflow and host-configuration checks.
 
 ## 6. Key files
 
@@ -65,10 +64,12 @@ The mcp-server package is CommonJS metadata with a placeholder test script; it h
 | [api/src/config/db.ts](api/src/config/db.ts) | PostgreSQL pool and Drizzle client |
 | [api/src/database/schema.ts](api/src/database/schema.ts) | Current users table schema |
 | [api/package.json](api/package.json) | API scripts and dependencies |
-| [api/docs/architecture.md](api/docs/architecture.md) | Proposed system architecture |
-| [api/docs/database.md](api/docs/database.md) | Canonical proposed schema, relationships, and unresolved questions |
-| [api/docs/workflow.md](api/docs/workflow.md) | Team sprint sequence and design maintenance |
-| [mcp-server/package.json](mcp-server/package.json) | MCP package placeholder |
+| [docs/README.md](docs/README.md) | Documentation entry, reading order, and ownership |
+| [docs/architecture.md](docs/architecture.md) | Proposed system architecture and product flows |
+| [docs/database.md](docs/database.md) | Canonical proposed schema, relationships, and unresolved questions |
+| [docs/delivery.md](docs/delivery.md) | Team delivery sequence, Sprint 1 scope, and design handoff |
+| [docs/adr/ADR-0001-typescript-7-tooling.md](docs/adr/ADR-0001-typescript-7-tooling.md) | TypeScript 7 compiler and TypeScript 6 tooling dependency |
+| [docs/adr/ADR-0002-embed-mcp-in-api-service.md](docs/adr/ADR-0002-embed-mcp-in-api-service.md) | Planned embedded MCP module boundary |
 
 ## 7. Configuration and secrets
 
@@ -94,15 +95,15 @@ Migration commands/configuration exist in [api/package.json](api/package.json) a
 | --- | --- | --- | --- |
 | Infisical | API fetches runtime secrets | Universal Auth | Implemented in [fetch-secrets.ts](api/src/integrations/infisical/fetch-secrets.ts) |
 | PostgreSQL | API database connection | DATABASE_URL | Connection module and schema are present; business data flows are not implemented |
-| Business systems / MCP tools | Proposed API and AI workflows | Unknown | Documented plans only; see [architecture](api/docs/architecture.md) and [actions](api/docs/features/actions.md) |
+| Business systems / MCP tools | Proposed API and AI workflows | Unknown | Documented plans only; see [architecture](docs/architecture.md) |
 
 ## 10. Agent behavior
 
-The backend repository does not implement AI orchestration. AI work belongs to the separate felops-ai project; this repository's architecture describes a separate AI service and MCP server as intended components. Runtime tools, memory/retrieval, evaluations, and handoff behavior are unknown here. [api/docs/architecture.md](api/docs/architecture.md)
+The backend repository does not implement AI orchestration. AI work belongs to the separate felops-ai project; this repository's architecture describes a separate AI service and an embedded MCP module as intended components. Runtime tools, memory/retrieval, evaluations, and handoff behavior are unknown here. [docs/architecture.md](docs/architecture.md)
 
 Coding-agent routing: explorer uses the fast tier; implementer and reviewer use the balanced tier. The host maps tiers to available models without model pins; see [agent routing](docs/agent-routing.md). This is a development workflow, separate from the product's planned AI Service.
 
-Coding-agent host configuration: each host has its own surface. Claude Code uses `.claude/` and `CLAUDE.md`; Cursor uses `.cursor/`; OpenCode uses `.opencode/` (agents, commands, and a docs-reminder plugin), a repository-root `opencode.json` with approval prompts for migrations, vault/database writes, publishes, and pushes, plus `AGENTS.md`, and reads `.claude/skills` natively. The `.opencode/` files are ports of their `.claude` counterparts, so `.claude/` stays canonical; see [.opencode/README.md](.opencode/README.md). Verified on 2026-10-22 with `opencode debug agents` (explorer, implementer, and reviewer loaded as subagents), `opencode plugin list` (doc-reminder loaded), and `bin/check-opencode-config.sh`, which drives the reminder in a temporary repository; that script is separate from `bin/check-agent-workflow.sh`, which is unchanged. The four OpenCode commands were not listed through the API from this location, so their registration is not independently verified.
+Coding-agent host configuration: each host has its own surface. Claude Code uses `.claude/` and `CLAUDE.md`; Cursor uses `.cursor/`; OpenCode uses `.opencode/` (agents, commands, and a docs-reminder plugin), a repository-root `opencode.json` with approval prompts for migrations, vault/database writes, publishes, and pushes, plus `AGENTS.md`, and reads `.claude/skills` natively. The `.opencode/` files are ports of their `.claude` counterparts, so `.claude/` stays canonical; see [.opencode/README.md](.opencode/README.md). Verified on 2026-10-22 with `opencode debug agents` (explorer, implementer, and reviewer loaded as subagents), `opencode plugin list` (doc-reminder loaded), and `bin/check-opencode-config.sh`, which drives the reminder in a temporary repository; that script is separate from `bin/check-agent-workflow.sh`, which validates the Claude/Cursor adapters. The four OpenCode commands were not listed through the API from this location, so their registration is not independently verified.
 
 ## 11. Deployment and operations
 
@@ -116,13 +117,14 @@ Coding-agent host configuration: each host has its own surface. Claude Code uses
 
 ## 12. Verification and evidence
 
-- Current checks and independent review: [documentation consolidation QA](docs/work/documentation-consolidation/qa.md).
+- Current documentation restructure: [SDD documentation restructure QA](docs/work/sdd-docs-restructure/qa.md); earlier checks and independent review: [documentation consolidation QA](docs/work/documentation-consolidation/qa.md).
+- On 2026-11-01, both credential-free workflow checks, API lint, typecheck, and build passed for the restructure. A fresh review was completed on 2026-11-12; see the [QA](docs/work/sdd-docs-restructure/qa.md).
 - On 2026-10-22, `npm ci --prefix api --ignore-scripts --no-audit --no-fund`, API lint, typecheck, build, and both agent-workflow scripts passed.
 - On that check, `npm test --prefix api` failed at the import-time Infisical credential guard with credentials cleared, before test collection. The application test suite was not green; this documentation change does not claim authenticated runtime verification.
-- API contracts and request/response mocks are planned in Apidog. The retired local OpenAPI/Mintlify files are no longer maintained. Workspace access and the database revision are pending; see [API setup](api/README.md).
+- API contracts and request/response mocks are planned in Apidog. The retired local OpenAPI/Mintlify files are no longer maintained. Workspace access and the database revision are pending; see [Delivery](docs/delivery.md#current-handoff).
 
 ## 13. Open unknowns
 
-- Product credentials: Will the MCP Server read workspace secrets directly from the vault, or receive them per request from the backend? API Infisical bootstrap access only establishes application configuration retrieval, not this product contract. See [architecture](api/docs/architecture.md).
-- Rules synchronization: The planned Backend saves rules in PostgreSQL and MCP enforces them. Will MCP keep a copy or query the backend each time? This access contract remains unresolved; no MCP runtime implements it. See [architecture](api/docs/architecture.md).
-- Database revision: Session identity, the agent/channel relationship, and reconciliation with the other proposed schema remain open. See [database design](api/docs/database.md).
+- Product credentials: Will the MCP module read workspace secrets directly from the vault, or receive them per request from the backend? API Infisical bootstrap access only establishes application configuration retrieval, not this product contract. See [architecture open decisions](docs/architecture.md#open-decisions).
+- Rules synchronization: The planned Backend saves rules in PostgreSQL and the MCP module enforces them. Will the module keep a copy or query the backend each time? This access contract remains unresolved; no MCP runtime implements it. See [architecture open decisions](docs/architecture.md#open-decisions).
+- Database revision: Session identity, the agent/channel relationship, and reconciliation with the other proposed schema remain open. See [database open design questions](docs/database.md#open-design-questions).

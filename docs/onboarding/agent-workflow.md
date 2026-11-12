@@ -15,13 +15,13 @@ included commands. In other hosts, follow the same steps from `AGENTS.md`.
 For substantial changes, copy the [brief](../templates/feature-template.md) and
 [plan](../templates/implementation-plan-template.md) into one `docs/work/<item>/`
 folder. Use a supplied issue ID or a short task name. Link the canonical
-[architecture](../../api/docs/architecture.md) and
-[database design](../../api/docs/database.md); update those files in place when
-the design changes. A work brief describes the change and its acceptance
-criteria, rather than holding a separate copy of the current design. Durable
-architecture decisions go in `docs/adr/` with links to the affected design.
+[architecture](../architecture.md) and [database design](../database.md); update
+those files in place when the design changes. A work brief describes the change
+and its acceptance criteria, rather than holding a separate copy of the current
+design. Durable architecture decisions go in `docs/adr/` with links to the
+affected design.
 
-The [team workflow](../../api/docs/workflow.md) defines the sprint's
+The [delivery sequence](../delivery.md) defines the team's
 Design → Implementation → Deployment sequence and workflow design contents.
 This agent loop supplies task execution, verification, and review within it.
 Deployment requires its own authorization; completion of a coding task does
@@ -35,8 +35,10 @@ does not certify application behavior. Use the backend commands in `AGENTS.md`
 for product changes and report environment limitations accurately.
 
 The stop hooks inspect the current working tree. Code-only changes trigger a
-documentation reminder; updates to root project/work/ADR records or `api/docs/`
-satisfy it. Claude's reminder is informational; Cursor may request a follow-up
+documentation reminder; updates to the constitution documents (`docs/README.md`,
+`docs/project-context.md`, `docs/architecture.md`, `docs/database.md`,
+`docs/delivery.md`), `docs/work/`, `docs/adr/`, or `agent-metadata.md` satisfy
+it. Claude's reminder is informational; Cursor may request a follow-up
 with a bounded loop. Neither reminder replaces review or proves docs are correct.
 
 Open the repository root in the host. Claude's configured launcher uses its

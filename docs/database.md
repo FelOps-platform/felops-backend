@@ -9,9 +9,9 @@ database schema.
 
 The only table currently defined in code is `users`, with an integer identity
 `id`, required `name` and required unique `email`
-([schema source](../src/database/schema.ts)). The implemented
-[health endpoint](../src/app.ts) does not use the database. Product API and data
-flows remain proposed; see [Architecture](architecture.md).
+([schema source](../api/src/database/schema.ts)). The implemented
+[health endpoint](../api/src/app.ts) does not use the database. Product API and
+data flows remain proposed; see [Architecture](architecture.md).
 
 ## Proposed relationship model
 
@@ -72,8 +72,9 @@ implemented by this document.
   composite key (`workspace_id`, `integration_id`).
 - Each connection is private to its workspace; credentials are not shared across
   workspaces.
-- Credential storage and delivery are unresolved. The proposed
-  `encrypted_credentials` field below does not decide whether the MCP Server
+- Credential storage and delivery are unresolved; see
+  [Architecture open decisions](architecture.md#open-decisions). The proposed
+  `encrypted_credentials` field below does not decide whether the MCP module
   reads credentials from a Vault or receives them with each request.
 
 ### Integration → Action
@@ -210,7 +211,7 @@ One proposed row represents one workspace's connection to one integration.
 |---|---|---|
 | `workspace_id` | Integer (FK → Workspace) | Composite PK. |
 | `integration_id` | Integer (FK → Integration) | Composite PK. |
-| `encrypted_credentials` | Text | Proposed field; credential storage and MCP access contract remain open. |
+| `encrypted_credentials` | Text | Proposed field; credential storage and MCP module access contract remain open. |
 | `status` | String | Suggested: `connected`, `disconnected`. |
 | `connected_at` | Timestamp | Suggested. |
 | `disconnected_at` | Timestamp | Suggested, nullable. |
@@ -246,14 +247,11 @@ One proposed row represents one action enabled for one agent.
   revision and merge with Mahmoud's schema work.
 - How will the revised schema and authorization contract enforce that a
   conversation's channel, agent, and end user belong to the same workspace?
-- Does the MCP Server read workspace credentials from a Vault, or does the
-  Backend send credentials with each request? The API's Infisical runtime config
-  does not decide this product contract.
-- Does the MCP Server keep a copy of Backend rules, or ask the Backend for the
-  current rules each time?
 - Is message storage short-term or long-term memory?
 - Should the full conversation history be sent to the AI Service?
 
+Product credential delivery and rules synchronization are owned by
+[Architecture open decisions](architecture.md#open-decisions).
+
 API endpoints, request/response examples, and mocks are not specified here. See
-[Workflow](workflow.md) for the Apidog design handoff after the database revision
-and workspace invitation.
+[Delivery](delivery.md#current-handoff) for the Apidog design handoff.

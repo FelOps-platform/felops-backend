@@ -22,7 +22,7 @@
 import { execFileSync } from "node:child_process"
 
 const REMINDER =
-  "Docs reminder: code changed but no work doc, project context, ADR, api/docs page, or agent-metadata.md " +
+  "Docs reminder: code changed but no work doc, project context, ADR, constitution document, or agent-metadata.md " +
   "was updated. If this change was significant, update verified project records before shipping."
 
 // No shell: args are passed as an array straight to git.
@@ -88,10 +88,13 @@ function classify(files) {
   for (const file of files) {
     if (
       file === "agent-metadata.md" ||
+      file === "docs/README.md" ||
       file === "docs/project-context.md" ||
+      file === "docs/architecture.md" ||
+      file === "docs/database.md" ||
+      file === "docs/delivery.md" ||
       file.startsWith("docs/work/") ||
-      file.startsWith("docs/adr/") ||
-      file.startsWith("api/docs/")
+      file.startsWith("docs/adr/")
     ) {
       docsUpdated = true
     } else if (

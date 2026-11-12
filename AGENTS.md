@@ -1,19 +1,20 @@
 # Repository instructions
 
-Read this file first. Use docs/project-context.md for the current product and its constraints, and agent-metadata.md for verified technical and agent state. Treat missing or unverified facts as unknown; never infer a stack from the repository name.
+Read this file first. Use docs/README.md as the documentation entry, docs/project-context.md for the current product and its constraints, and agent-metadata.md for verified technical and agent state. Treat missing or unverified facts as unknown; never infer a stack from the repository name.
 
 ## FelOps repository boundaries
 
 - `api/` is the TypeScript / Express backend. Run its npm commands from `api/`
   or with `npm --prefix api`. The root is not an npm workspace.
-- `mcp-server/` is a package placeholder with no implemented server. Its default
-  `test` script intentionally fails; it is not a backend verification command.
+- The MCP runtime is planned as a module embedded inside `api/`
+  ([ADR-0002](docs/adr/ADR-0002-embed-mcp-in-api-service.md)); no MCP code exists
+  yet, and this repository has no standalone MCP package.
 - The AI Service lives in the separate `FelOps-platform/felops-ai` repository.
   Keep its FastAPI/LangGraph stack separate from this backend.
 - Current executable behavior is the health endpoint and configuration scaffold.
   Architecture documents describe intended services; they do not prove those
   services exist. Read the relevant source before changing business behavior.
-- The Backend saves agent rules; the planned MCP Server enforces them. Do not
+- The Backend saves agent rules; the planned MCP module enforces them. Do not
   settle credential-vault access or rule synchronization implicitly: these remain
   open design questions in the team's documentation.
 
@@ -46,21 +47,23 @@ bash bin/check-opencode-config.sh
 
 ## Team design workflow
 
-Follow the team's [Design → Implementation → Deployment workflow](api/docs/workflow.md).
+Follow the team's [Design → Implementation → Deployment workflow](docs/delivery.md).
 The agent delivery loop below fits inside that sequence; it does not authorize
 deployment.
 
-- `api/docs/architecture.md` is the canonical living system design;
-  `api/docs/database.md` is the canonical living database design. Edit them in
-  place when the design changes. Planned design does not prove implemented code.
-- `api/docs/` also holds sprint scope and feature context. `docs/` holds the
-  shared coding-agent workflow, decisions, and change records.
-- Sprint, feature, and work records link to the relevant canonical designs and
-  describe the change. Do not split the current architecture or schema across
-  task files. Update affected canonical documents in the same change.
+- [docs/README.md](docs/README.md) is the documentation entry and constitution
+  index. `docs/architecture.md` is the canonical living system design;
+  `docs/database.md` is the canonical living database design. Edit them in place
+  when the design changes. Planned design does not prove implemented code.
+- `docs/delivery.md` holds the sprint sequence and current sprint scope; `docs/`
+  also holds the coding-agent workflow, decisions, and change records.
+- Work records link to the relevant canonical designs and describe the change.
+  Do not split the current architecture or schema across task files. Update
+  affected canonical documents in the same change.
 - API endpoint contracts and request/response mocks belong in the team's Apidog
   workspace. Its invitation and the database revision are pending; do not invent
-  a workspace URL or completed contract. See [API setup](api/README.md).
+  a workspace URL or completed contract. See
+  [Delivery](docs/delivery.md#current-handoff).
 
 ## Working with requests
 
@@ -105,7 +108,10 @@ When the repository has a remote and a shared default branch, this is required. 
 
 ## Project documentation
 
+- docs/README.md is the documentation entry: constitution, reading order, and ownership.
 - docs/project-context.md describes product goals, constraints, terminology, and known unknowns.
+- docs/architecture.md and docs/database.md are the canonical living system and database designs.
+- docs/delivery.md defines the team delivery sequence and current sprint scope.
 - docs/onboarding/agent-onboarding.md is the entry point for a new contributor; docs/ai-engineering-rules.md applies when changing an LLM-backed feature.
 - agent-metadata.md records verified stack, architecture, integrations, and agent behavior. Update it when those facts change.
 - Significant work gets one folder in docs/work/ containing the brief, plan, and optional verification notes. Use an issue identifier when one is supplied; otherwise use a short descriptive slug.

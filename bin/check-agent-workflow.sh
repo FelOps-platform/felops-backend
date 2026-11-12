@@ -67,7 +67,7 @@ for (const file of docs.filter((f) => f.endsWith('.md') || f.endsWith('.mdc'))) 
 // its project placeholder into argv; Cursor project hooks run from the root.
 const fixture = mkdtempSync(path.join(tmpdir(), 'felops-agent-workflow-'));
 try {
-  for (const dir of ['.claude/hooks', '.cursor/hooks', 'api/src', 'api/docs']) {
+  for (const dir of ['.claude/hooks', '.cursor/hooks', 'api/src', 'docs']) {
     mkdirSync(path.join(fixture, dir), { recursive: true });
   }
   for (const host of ['.claude', '.cursor']) {
@@ -95,9 +95,18 @@ try {
   writeFileSync(path.join(fixture, 'api/src/example.ts'), 'export const value = 2;\n');
   assert.ok(JSON.parse(run('claude', true)).systemMessage);
   assert.ok(JSON.parse(run('cursor')).followup_message);
-  writeFileSync(path.join(fixture, 'api/docs/workflow.md'), '# Backend workflow\n');
-  assert.equal(run('claude', true), '');
-  assert.equal(run('cursor'), '');
+  for (const doc of [
+    'docs/README.md',
+    'docs/project-context.md',
+    'docs/architecture.md',
+    'docs/database.md',
+    'docs/delivery.md',
+  ]) {
+    writeFileSync(path.join(fixture, doc), '# Constitution document\n');
+    assert.equal(run('claude', true), '', `${doc} must suppress the Claude reminder`);
+    assert.equal(run('cursor'), '', `${doc} must suppress the Cursor reminder`);
+    rmSync(path.join(fixture, doc));
+  }
 } finally {
   rmSync(fixture, { recursive: true, force: true });
 }

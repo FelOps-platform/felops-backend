@@ -76,7 +76,7 @@ for (const pattern of ['*database:migrate*', '*supabase *', 'git push *', 'git m
 // Node imports the shipped file directly.
 const fixture = mkdtempSync(path.join(tmpdir(), 'felops-opencode-check-'));
 try {
-  for (const dir of ['api/src', 'api/docs']) mkdirSync(path.join(fixture, dir), { recursive: true });
+  for (const dir of ['api/src', 'docs']) mkdirSync(path.join(fixture, dir), { recursive: true });
   const git = (...args) => execFileSync('git', args, { cwd: fixture, stdio: 'ignore' });
   const commit = (message) => git('-c', 'user.name=Config Check', '-c', 'user.email=check@example.invalid',
     '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', 'commit', '-qm', message);
@@ -133,6 +133,20 @@ try {
   mkdirSync(path.join(fixture, 'docs/work/example'), { recursive: true });
   writeFileSync(path.join(fixture, 'docs/work/example/plan.md'), '# Plan\n');
   assert.equal(remind('oc-with-docs'), 0, 'a recognized doc must suppress the reminder');
+
+  // Each constitution document suppresses the reminder; use a fresh session for each.
+  rmSync(path.join(fixture, 'docs/work'), { recursive: true, force: true });
+  for (const [index, doc] of [
+    'docs/README.md',
+    'docs/project-context.md',
+    'docs/architecture.md',
+    'docs/database.md',
+    'docs/delivery.md',
+  ].entries()) {
+    writeFileSync(path.join(fixture, doc), '# Constitution document\n');
+    assert.equal(remind(`oc-constitution-${index}`), 0, `${doc} must suppress the reminder`);
+    rmSync(path.join(fixture, doc));
+  }
 
   // Committed work counts too: per-unit commits must not hide the reminder.
   git('checkout', '--', 'api/src/example.ts');
