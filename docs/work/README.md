@@ -17,3 +17,4 @@ Use an issue identifier when the user supplies one; otherwise choose a short des
 - Use Draft → Planned → In Progress → Done; record a blocking decision as Awaiting input.
 - A plan organizes already authorized work. Ask only about material unresolved decisions or actions that need explicit authorization.
 - Mark Done after acceptance criteria and relevant verification are complete. Update agent-metadata.md when verified technical or agent state changes.
+- Historical work records may contain path text that was current when written. Current paths are in [docs/README.md](../README.md); fix broken links when touching a record.

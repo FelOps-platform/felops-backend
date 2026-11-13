@@ -29,15 +29,17 @@ Describe the user-visible or system behavior in plain language.
 
 ## Backend workflow design (when relevant)
 
-Link the relevant sections of `api/docs/architecture.md` and
-`api/docs/database.md`, the sprint scope, and the Apidog API contract when
-available. Use the component names and workflow design guidance in
-`api/docs/workflow.md`.
+Link the relevant sections of `docs/architecture.md` and
+`docs/database.md`, the sprint scope in `docs/delivery.md`, and the Apidog API
+contract when available. Use the component names and workflow design guidance in
+`docs/delivery.md`.
 
 Describe this task's design changes, important failures, and deferred scope.
 Update the affected canonical architecture or database documents in the same change;
 do not copy the current system design or split the remaining schema into this
-work brief. Keep endpoint contracts and request/response mocks in Apidog.
+work brief. The work brief is the change specification; there is no separate
+specifications folder. Keep endpoint contracts and request/response mocks in
+Apidog.
 
 ## Impacted areas
 
