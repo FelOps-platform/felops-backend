@@ -16,3 +16,5 @@ npm-debug.log*
 .cursor/*.local.json
 .omo/
 .superpowers/
+
+docs/private
