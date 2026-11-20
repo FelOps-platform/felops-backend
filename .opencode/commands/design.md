@@ -18,7 +18,7 @@ Read in this order, and stop when the topic is covered. Do not load the full cor
 3. `docs/api/api-design-outline.md`, `docs/database/schema.dbml`,
    `docs/standards/engineering-conventions.md`, and `docs/standards/document-conventions.md`.
 4. The owning page under `docs/features/` for the topic.
-5. `docs/ai-service-integration/ai-service-contract-v3.md` only when the design crosses the AI
+5. `docs/ai-service-integration/ai-service-contract.md` only when the design crosses the AI
    boundary. Read the relevant section, not the whole contract.
 6. Relevant `docs/adr/` and `docs/work/` records.
 7. `docs/standards/ai-engineering-rules.md` only when the design touches LLM calls, tools, RAG, or
@@ -38,7 +38,7 @@ design decisions and edits in this session.
   tool execution, approvals, and frontend conversation history.
 - OpenAPI files under `docs/api/` are generated after implementation. The API outline is the
   high-level design source.
-- `docs/ai-service-integration/ai-service-contract-v3.md` is protected. Do not edit it unless the
+- `docs/ai-service-integration/ai-service-contract.md` is protected. Do not edit it unless the
   user explicitly asks.
 - Open decisions are real. Read the Decisions sections and work records instead of silently
   resolving them.

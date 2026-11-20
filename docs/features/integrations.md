@@ -2,6 +2,10 @@
 
 Integrations connect a workspace to an external system. Integration definitions, OAuth client settings, scopes, supported actions, and adapters live in the Backend code registry. The database stores workspace connections, encrypted OAuth tokens, external account details, and connection state. The frontend maps each `integration_key` to localized labels, descriptions, and category.
 
+> **Status:** Planned design. No API behavior is implemented unless source code proves otherwise.
+
+Action availability and agent grants are owned by [Actions](actions.md).
+
 ## 1. Workflows
 
 ### Browse integrations
@@ -21,7 +25,7 @@ Integrations connect a workspace to an external system. Integration definitions,
 - **Endpoint:** `GET /workspaces/{workspace_id}/integrations/{integration_key}`
 - **Flow:**
   1. The frontend loads the integration key and its workspace connection, then maps the key to localized display text.
-  2. Disabled integrations return `404 NOT_FOUND`.
+  2. Unknown integration keys return `404 NOT_FOUND`.
   3. The detail shows the connected external account, granted scopes, last validation, and available actions.
 - **Outcome:** The integration detail and connection state render.
 
@@ -40,7 +44,6 @@ Integrations connect a workspace to an external system. Integration definitions,
 - **Outcome:** The user is at the provider consent screen. Tokens are not requested by the frontend.
 - **Errors:**
   - `404 NOT_FOUND`: the workspace or integration does not exist.
-  - `409 INTEGRATION_DISABLED`: the integration is disabled in the code registry.
   - `409 OAUTH_ALREADY_PENDING`: a valid pending authorization already exists for this workspace integration.
 
 ### Handle OAuth callback
@@ -70,7 +73,7 @@ Integrations connect a workspace to an external system. Integration definitions,
   2. The user selects one account.
   3. The Backend verifies membership, ownership, expiry, and that the account ID is in the pending account list.
   4. It encrypts the token set, stores the connection with the external account ID and name, and consumes the pending record.
-- **Outcome:** The provider account is connected. Its registry actions become available in the workspace and default to enabled when no override exists.
+- **Outcome:** The provider account is connected. Its actions become available in the workspace and default to enabled when no override exists.
 - **Errors:**
   - `404 NOT_FOUND`: the pending connection or account does not exist.
   - `409 PENDING_ALREADY_CONSUMED`: the pending connection was already completed.
@@ -95,7 +98,6 @@ Integrations connect a workspace to an external system. Integration definitions,
 - Before a provider call, the Backend refreshes the access token when it is within 60 seconds of expiry.
 - Providers that rotate refresh tokens require the Backend to replace the access token and refresh token together under a row lock.
 - A failed refresh, revoked grant, or `invalid_grant` marks the connection `invalid` and requires OAuth reconnect.
-- Invalid credentials keep workspace action settings and agent grants, but make the actions `Unavailable`.
 - A `403`, `5xx`, or timeout is an execution failure, not a connection-state change.
 - A disconnected or invalid integration is omitted from the agent's next turn tool list.
 - The Backend rechecks the integration connection when `tools/call` executes; a call against an unavailable integration returns `integration_not_connected`.
@@ -114,35 +116,15 @@ stateDiagram-v2
   Invalid --> NoConnection: disconnect
 ```
 
-## 3. OAuth provider profile
+OAuth provider registry fields and token handling are owned by [Architecture](../architecture.md#oauth-provider-profile). This page owns the user-facing connection lifecycle and connection health.
 
-Each integration in the code registry defines:
-
-| Field | Purpose |
-| --- | --- |
-| `authorization_url` | Provider consent page URL. |
-| `token_url` | Authorization code and refresh token exchange URL. |
-| `client_id_env` | Runtime environment variable name for the OAuth client ID. |
-| `client_secret_env` | Runtime environment variable name for the OAuth client secret. |
-| `scopes` | Scopes requested during authorization. |
-| `authorization_params` | Optional provider parameters such as audience or prompt. |
-| `account_discovery_url` | Endpoint that lists accounts available to the token. |
-| `account_id_field` | Response field used as the external account ID. |
-| `account_name_field` | Response field used as the external account display name. |
-| `account_url_field` | Optional response field used as the external account URL. |
-| `api_base_url` | Provider API base URL template for tool calls. |
-| `refresh_token_rotation` | Whether refresh tokens are replaced on refresh. |
-| `token_endpoint_auth_method` | Client secret transport expected by the token endpoint. |
-
-The callback URL must exactly match the redirect URI registered with the provider. Client credentials stay in Backend runtime configuration. Provider OAuth configuration and client credentials never appear in frontend code or database rows. Adding a provider requires a registry entry and adapter; the OAuth state, callback, storage, and token refresh flow stay the same.
-
-## 4. Future work
+## 3. Future work
 
 - Scope expansion and re-consent when required permissions change.
 - Provider token revocation on disconnect.
 - Additional OAuth providers.
 
-## 5. Decisions
+## 4. Decisions
 
 - Integration definitions and provider adapters live in code. Database rows represent workspace connection state only, including OAuth state and pending account selections.
 - Frontend localization owns integration names, descriptions, and category labels. The Backend returns stable keys only.
@@ -152,4 +134,4 @@ The callback URL must exactly match the redirect URI registered with the provide
 - Multi-account providers require explicit account selection.
 - Disconnecting removes connection credentials, workspace action settings, and agent action grants.
 - Invalid credentials keep action settings and agent grants but make actions unavailable.
-- Global integration availability changes with the code registry, not a database row.
+- Integrations available to the workspace are defined by the code registry; connection state is stored per workspace.

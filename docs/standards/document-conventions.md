@@ -12,6 +12,7 @@ This page defines the structure and shared conventions for the repository docs.
 | Errors | Feature pages list workflow-specific errors. Generic `400 MALFORMED_REQUEST`, `401`, `403`, `429`, and `500` live in the API outline. |
 | Repetition | Link to the owning section instead of repeating payload fields or shared rules. |
 | Diagrams | Use Mermaid for state and cross-service sequences. |
+| Labels | UI state labels use title case (`Ready`, `Processing`, `Failed`; `Enabled`, `Disabled`, `Unavailable`). API enum values use lowercase snake_case (`ready`, `processing`, `failed`). Say which form a field uses when both appear. |
 
 ## Workflows
 

@@ -4,7 +4,7 @@ Status: Superseded by AI Service contract v3
 Created: 2026-10-25
 Related issue: [ADR-0004](../../adr/ADR-0004-backend-owned-tool-execution.md), [ADR-0005](../../adr/ADR-0005-async-ai-service-v3.md)
 
-> Historical record. This brief captures the pre-v3 proposal; the flow below is not current API guidance. Use [ADR-0005](../../adr/ADR-0005-async-ai-service-v3.md) and the [v3 contract](../../ai-service-integration/ai-service-contract-v3.md) for current behavior. Custom actions are deferred and out of current scope.
+> Historical record. This brief captures the pre-v3 proposal; the flow below is not current API guidance. Use [ADR-0005](../../adr/ADR-0005-async-ai-service-v3.md) and the [v3 contract](../../ai-service-integration/ai-service-contract.md) for current behavior. Custom actions are deferred and out of current scope.
 
 ## Problem and context
 

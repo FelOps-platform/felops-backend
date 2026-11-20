@@ -2,6 +2,10 @@
 
 An agent has instructions, assigned Workspace Actions, selected workspace sources, and resolved approval requirements. Channels are assigned separately; one agent can serve multiple channels.
 
+> **Status:** Planned design. No API behavior is implemented unless source code proves otherwise.
+
+Action availability is owned by [Actions](actions.md); source readiness by [Knowledge](knowledge.md); approval decisions by [Approvals](approvals.md).
+
 ## 1. Workflows
 
 ### Browse agents
@@ -21,8 +25,8 @@ An agent has instructions, assigned Workspace Actions, selected workspace source
 
 - **Where:** Agents page, `create Agent`.
 - **Endpoints:**
-  - `GET /workspaces/{workspace_id}/actions`
-  - `GET /workspaces/{workspace_id}/knowledge`
+  - `GET /workspaces/{workspace_id}/actions?page=1&limit=20&search=`
+  - `GET /workspaces/{workspace_id}/knowledge?page=1&limit=20&search=&type=&status=`
   - `POST /workspaces/{workspace_id}/agents`
 - **Flow:**
   1. **Basic information.** The user enters Agent name and Instructions. Both are required.
@@ -64,7 +68,7 @@ An agent has instructions, assigned Workspace Actions, selected workspace source
 
 - **Where:** Agent detail, Assigned Actions, `Edit assignments`.
 - **Endpoints:**
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/actions`
+  - `GET /workspaces/{workspace_id}/agents/{agent_id}/actions?page=1&limit=20&search=`
   - `PUT /workspaces/{workspace_id}/agents/{agent_id}/actions`
 - **Flow:**
   1. The picker shows available Workspace Actions and current grants.
@@ -72,7 +76,8 @@ An agent has instructions, assigned Workspace Actions, selected workspace source
   3. Saving replaces editable grants and preserves stored grants for disabled or unavailable actions.
 - **Outcome:** Action grants are stored. Approval requirements come from workspace policy.
 - **Rules:**
-  - Only workspace-enabled actions from connected integrations can be granted or changed.
+  - The available-action list is paginated; the current selected tool keys are returned separately.
+  - Only actions enabled for the workspace from connected integrations can be granted or changed.
   - Grants for disabled or unavailable actions are kept but cannot change until the action is available again.
   - Disabled and unavailable tools are omitted from the next `agent_config`.
   - Approval requirements come from workspace policy, not this picker.
@@ -81,13 +86,15 @@ An agent has instructions, assigned Workspace Actions, selected workspace source
 
 - **Where:** Agent detail, `Edit Agent`, Configure Knowledge.
 - **Endpoints:**
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/knowledge`
+  - `GET /workspaces/{workspace_id}/agents/{agent_id}/knowledge?page=1&limit=20&search=`
   - `PUT /workspaces/{workspace_id}/agents/{agent_id}/knowledge`
 - **Flow:**
   1. The source picker lists workspace sources. Only Ready sources can be selected.
   2. The user selects the sources the agent may use.
   3. The Backend validates that every source belongs to the workspace and is Ready, then replaces the agent's assignments.
 - **Outcome:** The agent retrieves only its selected workspace sources.
+- **Rules:**
+  - The available-source list is paginated; the current selected source IDs are returned separately.
 - **Errors:**
   - `422 VALIDATION_ERROR`: a selected source does not exist in this workspace or is not ready.
 

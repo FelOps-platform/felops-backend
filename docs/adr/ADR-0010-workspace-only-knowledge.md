@@ -39,8 +39,8 @@ Agent knowledge should be simple: the workspace maintains one knowledge library,
 ## References
 
 - [Knowledge](../features/knowledge.md)
-- [Agents](../features/agents-config.md)
+- [Agents](../features/agents.md)
 - [API outline](../api/api-design-outline.md)
 - [Database schema](../database/schema.dbml)
-- [AI Service contract v3](../ai-service-integration/ai-service-contract-v3.md)
+- [AI Service contract v3](../ai-service-integration/ai-service-contract.md)
 - [ADR-0005](ADR-0005-async-ai-service-v3.md)

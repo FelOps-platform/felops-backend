@@ -84,5 +84,5 @@ Built-in actions still need provider-specific execution logic. A single generic 
 
 - [Integrations and actions](../features/integrations.md)
 - [API outline](../api/api-design-outline.md)
-- [AI Service integration contract](../ai-service-integration/ai-service-contract-v3.md)
+- [AI Service integration contract](../ai-service-integration/ai-service-contract.md)
 - [Database schema](../database/schema.dbml)

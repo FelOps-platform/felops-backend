@@ -37,7 +37,7 @@ ADR-0004 remains valid for Backend-owned tool definitions and execution, but its
 
 ## References
 
-- [AI Service contract v3](../ai-service-integration/ai-service-contract-v3.md)
+- [AI Service contract v3](../ai-service-integration/ai-service-contract.md)
 - [Architecture](../architecture.md)
 - [API outline](../api/api-design-outline.md)
 - [Channels](../features/channels.md)

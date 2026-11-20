@@ -14,8 +14,8 @@ them in a command, brief, or feature page; link here or to the owning section in
   the server assigns the ID.
 - **Hard delete by default.** Archive or soft delete needs an explicit decision recorded in the
   owning document or an ADR.
-- **Derive, do not store.** Computed values such as action availability are calculated from the
-  code registry, connection status, and workspace setting.
+- **Derive, do not store.** Computed values such as action availability are calculated from
+  registry membership, connection status, and workspace setting.
 - **Do not key collections by ID.** Return arrays of groups that carry their own ID and label.
 - **Fixed sets use enums; open labels use strings.** Adding an enum value needs a migration.
 - **UTC everywhere.** Use ISO 8601 timestamps in API payloads.
@@ -47,7 +47,7 @@ status codes, and error details. Follow them rather than copying them.
 - The AI Service calls the Backend API; it does not write PostgreSQL directly.
 
 The [architecture](../architecture.md) and
-[AI Service contract](../ai-service-integration/ai-service-contract-v3.md) own the service
+[AI Service contract](../ai-service-integration/ai-service-contract.md) own the service
 boundaries.
 
 ## Localization

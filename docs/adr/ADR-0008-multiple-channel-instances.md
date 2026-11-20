@@ -16,7 +16,7 @@ Transport adapters, message delivery, webhooks, and conversation behavior are no
 ## Decision
 
 - A workspace may create multiple channel instances of the same channel type.
-- Channel types and enabled state live in code.
+- Channel types live in code.
 - Each channel instance stores a workspace-specific name, channel type key, an optional one-agent assignment, and opaque config.
 - Each channel has at most one operating agent. An agent may operate on many channels.
 - Deleting an agent leaves its channels unassigned until a new agent is selected.

@@ -2,18 +2,25 @@
 
 Workspace Knowledge is the only source library. Each source belongs to one workspace and is ingested into Qdrant once. Agents select the workspace sources they use; there are no agent-specific sources. A source can be assigned to an agent only when it is ready and belongs to the agent's workspace.
 
+> **Status:** Planned design. No API behavior is implemented unless source code proves otherwise.
+
+Agent source selection is configured in [Agents](agents.md).
+
 ## 1. Workflows
 
 ### Browse workspace knowledge
 
 - **Where:** Workspace Knowledge page.
-- **Endpoint:** `GET /workspaces/{workspace_id}/knowledge`
+- **Endpoint:** `GET /workspaces/{workspace_id}/knowledge?page=1&limit=20&search=&type=&status=`
 - **Flow:**
-  1. The page loads the workspace source library.
+  1. The page loads a paginated workspace source library.
   2. The table shows source name, type, availability, date, and a More menu.
   3. Availability is `Ready`, `Processing`, or `Failed`. Search and filters narrow the list.
   4. The More menu opens Source Availability, which shows the assigned agent count and remove action.
 - **Outcome:** The library renders newest first.
+- **Rules:**
+  - Paginated with the shared defaults and maximum.
+  - Search matches source name and description; type and status filter the source list.
 
 ### Add a source
 
@@ -38,7 +45,7 @@ Workspace Knowledge is the only source library. Each source belongs to one works
 
 - **Where:** Agent creation, Configure Knowledge; Agent detail, `Edit Agent`, Configure Knowledge.
 - **Endpoints:**
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/knowledge`
+  - `GET /workspaces/{workspace_id}/agents/{agent_id}/knowledge?page=1&limit=20&search=`
   - `PUT /workspaces/{workspace_id}/agents/{agent_id}/knowledge`
 - **Flow:**
   1. The source picker lists workspace sources. Only Ready sources can be selected.
@@ -47,6 +54,7 @@ Workspace Knowledge is the only source library. Each source belongs to one works
   4. During creation, Review & save shows the selected source count.
 - **Outcome:** The agent retrieves only its selected workspace sources.
 - **Rules:**
+  - The available-source list is paginated; the current selected source IDs are returned separately.
   - Assignment does not copy or re-ingest the source.
   - Only assigned sources are retrieved for the agent.
   - A source can be assigned to many agents.

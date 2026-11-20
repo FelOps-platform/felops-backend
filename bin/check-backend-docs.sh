@@ -34,7 +34,7 @@ const featureFiles = [
   'docs/features/integrations.md',
   'docs/features/actions.md',
   'docs/features/knowledge.md',
-  'docs/features/agents-config.md',
+  'docs/features/agents.md',
   'docs/features/approvals.md',
   'docs/features/channels.md',
 ];
@@ -45,6 +45,7 @@ for (const file of docs) {
     assert.equal(/[ \t]+$/.test(line), false, `${file}:${index + 1}: trailing whitespace`);
   }
   assert.equal((text.match(/```/g) || []).length % 2, 0, `${file}: unbalanced code fences`);
+  assert.doesNotMatch(text, /[A-Z][A-Z0-9]*_DISABLED/, `${file}: disabled registry errors are removed`);
   for (const match of text.matchAll(/^```mermaid\n([\s\S]*?)^```$/gm)) {
     const first = match[1].trim().split('\n')[0];
     assert.match(first, /^(?:stateDiagram-v2|sequenceDiagram|flowchart(?: LR| TD| RL| BT)?)$/, `${file}: invalid Mermaid diagram ${first}`);
@@ -71,20 +72,23 @@ for (const file of featureFiles) {
 }
 
 const apiPath = 'docs/api/api-design-outline.md';
-const aiContractPath = 'docs/ai-service-integration/ai-service-contract-v3.md';
+const aiContractPath = 'docs/ai-service-integration/ai-service-contract.md';
 const actionsPath = 'docs/features/actions.md';
 const api = normalize(read(apiPath));
 const aiContract = normalize(read(aiContractPath));
 const actions = normalize(read(actionsPath));
+const architecture = normalize(read('docs/architecture.md'));
 
 const integrations = normalize(read('docs/features/integrations.md'));
 
 assert.match(integrations, /oauth\/start/, 'integrations start OAuth from the Backend');
 assert.match(integrations, /integrations\/oauth\/callback/, 'the Backend receives the OAuth callback');
 assert.match(integrations, /oauth\/complete/, 'multi-account OAuth selection completes in the Backend');
-assert.match(integrations, /OAuth provider profile/, 'providers share a reusable OAuth profile');
+assert.match(architecture, /## OAuth provider profile/, 'providers share a reusable OAuth profile');
+assert.match(integrations, /architecture\.md#oauth-provider-profile/, 'integrations link the reusable OAuth profile');
 assert.match(integrations, /frontend localizes integration names/i, 'frontend owns integration display text');
 assert.doesNotMatch(integrations, /provider API key/, 'integration connection uses OAuth, not API keys');
+assert.doesNotMatch(integrations, /INTEGRATION_DISABLED/, 'integration definitions have no disabled state');
 assert.match(actions, /Custom HTTP actions/, 'custom actions must remain in future work');
 assert.doesNotMatch(actions, /^### .*custom action/m, 'custom action workflows are deferred');
 assert.match(actions, /code registry/, 'built-in action definitions live in code');
@@ -105,18 +109,22 @@ assert.match(api, /## 4\. Common status codes/, 'API outline must define common 
 assert.match(api, /404.*NOT_FOUND/s, 'API outline must define not-found handling');
 assert.match(api, /tools\/call/, 'API outline must include tool execution');
 assert.match(api, /channels\/\{channel_id\}/, 'API outline must include channel instance editing');
-assert.match(api, /channels\/types/, 'API outline must include channel type discovery');
+assert.doesNotMatch(api, /channels\/types/, 'channel type discovery endpoint is removed');
+assert.doesNotMatch(api, /CHANNEL_DISABLED|INTEGRATION_DISABLED/, 'code registries have no disabled state');
+assert.match(api, /Pagination policy/i, 'API outline must define pagination policy');
 assert.doesNotMatch(api, /channels\/\{channel_key\}/, 'channel routes must use instance IDs');
 assert.match(api, /OpenAPI generation notes/, 'API outline must include OpenAPI generation guidance');
 assert.match(api, /Basic information → Assign Actions → Configure Knowledge → Review & save/, 'agent creation has four steps');
 assert.match(api, /Creation fields: name and instructions/, 'agent creation matches the Basic information form');
 assert.match(api, /Frontend localization owns static labels, descriptions, and category labels/, 'frontend owns static display text');
 assert.doesNotMatch(api, /displayName/, 'backend responses do not include display labels');
-const agentsDoc = normalize(read('docs/features/agents-config.md'));
+const agentsDoc = normalize(read('docs/features/agents.md'));
 const knowledge = normalize(read('docs/features/knowledge.md'));
 const knowledgeAdr = normalize(read('docs/adr/ADR-0010-workspace-only-knowledge.md'));
 assert.doesNotMatch(agentsDoc, /Needs Actions|needs_actions|configuration state/, 'agent list has no configuration state');
 assert.match(agentsDoc, /Creation progress is not stored/, 'in-progress creation is not persisted');
+assert.match(agentsDoc, /actions\?page=1&limit=20/, 'agent create action picker is paginated');
+assert.match(agentsDoc, /knowledge\?page=1&limit=20/, 'agent create knowledge picker is paginated');
 assert.match(api, /Workspace Knowledge is the only source library/, 'workspace knowledge is the only source library');
 assert.match(agentsDoc, /Agents cannot create knowledge sources/, 'agents select workspace knowledge only');
 assert.match(agentsDoc, /Every selected source must belong to the workspace and be ready/, 'agent creation validates workspace source membership and readiness');
@@ -130,8 +138,12 @@ assert.match(actions, /picker does not edit approval flags/, 'action approval is
 const channels = normalize(read('docs/features/channels.md'));
 assert.match(channels, /multiple channel instances/i, 'workspaces may create multiple channel instances per type');
 assert.match(channels, /at most one operating agent/i, 'each channel has at most one operating agent');
-assert.match(channels, /Frontend localization provides type labels/i, 'frontend owns channel type display text');
-assert.match(channels, /not complete/i, 'incomplete transport and conversation behavior is explicit');
+assert.match(channels, /frontend owns the channel type catalog/i, 'frontend owns channel type display text');
+assert.doesNotMatch(channels, /channels\/types/, 'channel type discovery endpoint is removed');
+assert.doesNotMatch(channels, /CHANNEL_DISABLED/, 'channel types have no disabled state');
+assert.match(channels, /agents\?page=1&limit=20/, 'channel create agent picker is paginated');
+assert.doesNotMatch(channels, /Unconfigured types show/i, 'unconfigured types are limited to the create picker');
+assert.match(channels, /not fully designed|incomplete/i, 'incomplete transport and conversation behavior is explicit');
 assert.doesNotMatch(api, /custom action CRUD/i, 'custom action CRUD is deferred');
 assert.doesNotMatch(api, /\/agents\/\{agent_id\}\/channels/, 'agent channel endpoints must be removed');
 assert.match(api, /integrations\/\{integration_key\}/, 'integrations use stable keys');

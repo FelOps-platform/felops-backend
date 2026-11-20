@@ -1,66 +1,79 @@
 # Delivery
 
-This document defines the team's product delivery sequence and the current
-sprint scope. The coding-agent delivery loop for contributors lives in
-[docs/onboarding/agent-workflow.md](onboarding/agent-workflow.md).
+This page owns the team delivery stages and their exit gates. The [documentation index](README.md) owns the reading order and document map; [agent workflow](onboarding/agent-workflow.md) owns the contributor execution loop.
 
-## Sprint sequence
+## 1. Design
 
-Follow **Design → Implementation → Deployment**.
+Produce enough design to implement safely:
 
-1. **Design:** keep the system architecture in [Architecture](architecture.md)
-   and the current logical data model in [Database](database.md). Sprint scope
-   and work records link to these living designs and describe the change rather
-   than split or duplicate the designs.
-2. **Implementation:** implement only after the relevant design and API
-   contracts are ready. Endpoint definitions, request/response examples, and
-   mocks belong in the team's Apidog workspace. That work starts after the
-   pending database revision and Apidog invitation. Server coding follows the
-   contract design.
-3. **Deployment:** plan and execute deployment as a separate, authorized phase
-   after implementation is ready.
+- Product scope and constraints in [project context](project-context.md).
+- Service boundaries and flows in [architecture](architecture.md).
+- API shape, formatting, and errors in the [API outline](api/api-design-outline.md).
+- Tables and relationships in [schema.dbml](database/schema.dbml).
+- Workflow behavior in [features](features/).
+- External contracts in the [AI Service contract](ai-service-integration/ai-service-contract.md) when relevant.
+- Durable decisions in [ADR](adr/README.md).
 
-For each product workflow, capture a short numbered main path, material failure
-cases, and intentionally deferred scope. Keep schema details in the Database
-document and high-level component flows in Architecture. Do not add endpoint
-specifications or request/response mocks to these documents.
+For substantial work, create `docs/work/<slug>/` with a brief and plan. The brief owns the requested behavior and acceptance criteria; the plan owns the implementation approach.
 
-Label failures F1, F2, and so on, reference the affected step, and specify the
-user-visible result, retry behavior, and required cleanup. Endpoint methods,
-paths, requests, success responses, and errors belong in Apidog. Explicitly mark
-incomplete failure designs as pending before implementing their endpoints.
+**Exit gate:** behavior, data, edge cases, and contract changes are agreed and linked from one work record.
 
-## Sprint 1
+## 2. Implementation
 
-**Status:** Proposed; this product flow is not implemented by the current API.
+Implement only the authorized scope. Follow the owning design rather than inventing behavior in code.
 
-**Goal:** prove the core idea end to end with an action that does not require
-approval: a user sends a message, the AI selects a tool, the MCP module enforces
-the saved rules, an action runs on Odoo, and the reply returns through the
-channel.
+- Update the owning design first when the design changes.
+- Add or update the Drizzle schema and migration when database behavior is authorized.
+- Keep provider credentials in the Backend. Never send them to the AI Service or frontend.
+- Add focused tests for new behavior and important failure paths.
+- Do not run migrations, connect real integrations, or contact shared vaults without explicit authorization.
 
-### Scope
+**Exit gate:** the change works locally, focused tests pass, and the implementation matches the design.
 
-The proposed component sequence and data flows live in
-[Architecture](architecture.md); the logical schema and open decisions live in
-[Database](database.md). Sprint 1 covers:
+## 3. Contract generation
 
-1. Channel message — see [Architecture](architecture.md).
-2. Integration setup — see [Architecture](architecture.md).
-3. Agent configuration — see [Architecture](architecture.md).
-4. Authentication — see [Architecture](architecture.md).
+The API outline is the high-level design. After implementation, generate the low-level OpenAPI specifications for other developers:
 
-### Exclusions
+- `api/openapi.client.yaml`
+- `api/openapi.internal.yaml`
 
-The Approval Service is excluded from Sprint 1. Actions that require approval
-are outside this goal. The broader component exclusions are listed in
-[Architecture](architecture.md).
+Do not treat empty or partial placeholders as published contracts.
 
-## Current handoff
+## 4. Verification and review
 
-The database revision and Apidog invitation are pending. Endpoint design, mocks,
-and backend implementation have not started in this documentation set. API
-endpoint definitions, request/response examples, and mocks belong in the team's
-Apidog workspace; server coding follows that contract design. See
-[Architecture](architecture.md) for the proposed flows and
-[Database](database.md) for the schema questions.
+Run the checks relevant to the change:
+
+```bash
+npm run lint --prefix api
+npm run typecheck --prefix api
+npm run build --prefix api
+npm test --prefix api
+
+bash bin/check-backend-docs.sh
+bash bin/check-agent-workflow.sh
+bash bin/check-opencode-config.sh
+```
+
+The API test suite currently needs Infisical bootstrap credentials. Report that limitation accurately.
+
+Substantive changes need a fresh reviewer who did not implement them. The reviewer checks the diff, design alignment, failure behavior, tests, and documentation ownership.
+
+**Exit gate:** checks pass, material findings are resolved, and the diff is reviewed.
+
+## 5. Deployment
+
+Deployment is a separate phase with its own authorization.
+
+- Prepare the pull request with `.github/PULL_REQUEST_TEMPLATE.md`.
+- Include verification evidence, risks, and rollback notes.
+- Push, open or update a pull request, merge, and deploy only when the user has authorized that action.
+- Completing implementation does not authorize deployment.
+
+## Definition of done
+
+- Acceptance criteria are met.
+- Owning docs and `agent-metadata.md` are current.
+- Verification evidence is recorded.
+- The diff is reviewed.
+- The change is committed as a coherent unit.
+- Remaining risks or deferred scope are stated.

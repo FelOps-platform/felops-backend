@@ -26,7 +26,7 @@ Definitions for integrations, built-in actions, and channel types live in code. 
 | Integrations | integration, connection, OAuth flow | `GET .../integrations/{integration_key}`, `POST .../oauth/start`, `GET /api/v1/integrations/oauth/callback`, `POST .../oauth/complete` |
 | Actions | action, catalog, workspace setting | `GET .../actions`, `GET .../actions/{tool_key}`, `PUT .../actions/{tool_key}/availability`, agent grants |
 | Knowledge | source, ingestion | `GET/POST /workspaces/{workspace_id}/knowledge`, `GET/DELETE .../knowledge/{source_id}`, `POST .../knowledge/{source_id}/retry` |
-| Channels | channel instance, agent assignment | `GET/POST /workspaces/{workspace_id}/channels`, `GET/PATCH .../channels/{channel_id}`, `GET .../channels/types` |
+| Channels | channel instance, agent assignment | `GET/POST /workspaces/{workspace_id}/channels`, `GET/PATCH .../channels/{channel_id}` |
 | Agents | agent, knowledge selection, action grant | agent CRUD, knowledge selection, action grants |
 | Executions | execution | workspace and agent execution history |
 | Approvals | approval | agent approval list, decision |
@@ -57,7 +57,16 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 - Timestamps are ISO 8601 UTC. IDs are numeric unless a resource uses a UUID/string ID, such as approvals, jobs, and OAuth pending connections.
 - Stable slugs use `*_key` and API tool identity uses `toolKey`. Integration keys and tool keys are the stable identifiers across the code registry and database rows.
 - The Backend returns stable keys and user-owned text only. Frontend localization owns static labels, descriptions, and category labels for integrations, actions, and channel types. Action descriptions in the catalog are LLM-facing and are not returned for display.
-- Action catalog responses include `catalogVersion`. If the frontend receives an unknown `tool_key`, show the key with an update-required state, preserve existing grants, and block new assignment until localization is updated. Release checks must cover every active built-in tool key.
+- Action catalog responses include `catalogVersion`. If the frontend receives an unknown `tool_key`, show the key with an update-required state, preserve existing grants, and block new assignment until localization is updated. Release checks must cover every built-in tool key.
+
+### Pagination policy
+
+- Paginate collections that grow with user activity or history: workspace knowledge, workspace actions, agent actions, agent knowledge, executions, approvals, and channels.
+- The agents list is already paginated.
+- Do not paginate bounded code registries or small fixed sets: integrations, OAuth accounts, and single-resource detail endpoints.
+- Use `page`, `limit`, and relevant `search` or filter parameters. Default `limit=20`; maximum `100`.
+- Keep aggregate statistics separate from paginated rows. Do not calculate action or knowledge statistics by loading every page.
+- For agent action and knowledge pickers, return the current selected IDs separately from the paginated available items.
 
 ## 4. Common status codes
 
@@ -80,26 +89,25 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 
 ## 5. Channel rules
 
-- `GET/POST /workspaces/{workspace_id}/channels`
+- `GET /workspaces/{workspace_id}/channels?page=1&limit=20&search=`
+- `POST /workspaces/{workspace_id}/channels`
 - `GET/PATCH /workspaces/{workspace_id}/channels/{channel_id}`
-- `GET /workspaces/{workspace_id}/channels/types`
 - A workspace may have multiple channel instances of the same `channel_key`.
 - Each channel has at most one agent. A channel may be created unassigned, and an agent may operate multiple channels.
 - A channel instance has a workspace-specific user-provided `name`; names are unique per workspace.
-- Channel type definitions and enabled state live in code; the database stores workspace instances only.
-- The frontend maps `channel_key` to localized type labels and descriptions.
-- A disabled channel type cannot be configured and returns `409 CHANNEL_DISABLED`.
+- Channel type definitions live in code; the database stores workspace instances only.
+- The frontend owns the channel type catalog and maps `channel_key` to localized labels and descriptions. There is no channel type discovery endpoint; the Backend validates the submitted key.
 - Duplicate channel names return `409 DUPLICATE_NAME`.
 - Channel setup is separate from agent creation and editing.
 - Transport, messages, delivery state, and conversations are not complete.
 
 ## 6. Action availability rules
 
-- `GET /workspaces/{workspace_id}/actions` lists actions for workspace integrations with a connection record, including invalid connections.
+- `GET /workspaces/{workspace_id}/actions?page=1&limit=20&search=&integration_key=&availability=` lists actions for workspace integrations with a connection record, including invalid connections.
 - Actions from integrations the workspace has never connected are not listed.
 - `PUT /workspaces/{workspace_id}/actions/{tool_key}/availability` sets `{ enabled: boolean }`.
 - Workspace action settings are sparse. No row means enabled.
-- `Enabled`: registry active, connection healthy, no disabling override.
+- `Enabled`: connection healthy and no disabling override.
 - `Disabled`: workspace override is `enabled = false`.
 - `Unavailable`: the integration connection is invalid and must be reconnected.
 - Disabled and unavailable tools are omitted from `agent_config`.

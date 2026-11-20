@@ -97,7 +97,7 @@ The approval flow also changes: a pending approval has no execution. Approval cr
 ## References
 
 - [ADR-0003](ADR-0003-database-backed-built-in-tool-definitions.md)
-- [AI Service integration contract](../ai-service-integration/ai-service-contract-v3.md)
+- [AI Service integration contract](../ai-service-integration/ai-service-contract.md)
 - [System architecture](../architecture.md)
 - [API outline](../api/api-design-outline.md)
 - [Actions](../features/actions.md)

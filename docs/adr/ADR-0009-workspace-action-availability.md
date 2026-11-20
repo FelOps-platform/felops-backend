@@ -18,10 +18,9 @@ Agent grants are separate from workspace availability. A disabled or unavailable
 - Do not seed every registry action into the database when an integration connects.
 - List actions for workspace integrations with a connection record, including invalid connections. Do not list actions from integrations the workspace never connected.
 - Derive availability:
-  - `Enabled`: registry action active, connection healthy, no disabling override.
+  - `Enabled`: connection healthy and no disabling override.
   - `Disabled`: workspace override has `enabled = false`.
   - `Unavailable`: integration connection is invalid.
-- Registry-disabled actions are hidden.
 - `PUT /workspaces/{workspace_id}/actions/{tool_key}/availability` updates the workspace override.
 - Disabling an action keeps agent grants. Disabled and unavailable tools are omitted from `agent_config`.
 - Invalid credentials keep workspace settings and agent grants.
@@ -33,7 +32,7 @@ Agent grants are separate from workspace availability. A disabled or unavailable
 
 - The database stores only user overrides, not a copy of the action catalog.
 - New registry actions appear automatically without backfill.
-- Availability status is computed from registry, connection, and workspace setting.
+- Availability status is computed from registry membership, connection state, and workspace setting.
 - Temporary credential failures do not destroy agent configuration.
 - Explicit disconnect is destructive for that integration's action configuration.
 - The action UI can show Enabled, Disabled, and Unavailable states without a stored availability column.

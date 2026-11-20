@@ -13,9 +13,9 @@ Workspace state is different. Connections, encrypted credentials, action grants,
 
 ## Decision
 
-- Integration definitions live in code: key, auth method, OAuth settings, enabled state, supported actions, and adapter.
-- Built-in action definitions live in code: stable tool key, integration key, LLM-facing description, input schema, side effect, version, enabled state, and handler.
-- Channel type definitions live in code: channel key, enabled state, behavior, and configuration validation.
+- Integration definitions live in code: key, auth method, OAuth settings, supported actions, and adapter.
+- Built-in action definitions live in code: stable tool key, integration key, LLM-facing description, input schema, side effect, version, and handler.
+- Channel type definitions live in code: channel key, behavior, and configuration validation.
 - Frontend localization owns static display names, descriptions, and category labels. The Backend does not store or send them. Frontend code maps integration keys, action tool keys, channel keys, and category keys to localized text.
 - The database stores workspace state only: integration connections and encrypted credentials, agent action grants by tool key, executions, workspace channel instances, agent assignments, and channel config.
 - Agent grants reference stable tool keys. Executions store the integration key and tool key snapshots.
@@ -33,7 +33,7 @@ Workspace state is different. Connections, encrypted credentials, action grants,
 - Action descriptions are LLM-facing catalog text and are never returned to the frontend for display.
 - Static frontend text changes in localization files, not backend catalog changes.
 - Catalog metadata changes require a deploy, but code and catalog cannot drift.
-- Deployment checks must fail when an active action or integration has no handler.
+- Deployment checks must fail when an action or integration has no handler.
 
 ## References
 

@@ -2,30 +2,34 @@
 
 Actions are catalog tools exposed to agents. Built-in action definitions live in the Backend code registry. The database stores workspace availability settings, agent grants, and execution history. The Backend also owns resolved approval requirements, credentials, and provider execution. The frontend maps each `tool_key` and `integration_key` to localized action and integration labels. The AI Service receives only the current agent tool selection and calls the Backend to execute a tool.
 
+> **Status:** Planned design. No API behavior is implemented unless source code proves otherwise.
+
+Connection state is owned by [Integrations](integrations.md); agent grants are configured in [Agents](agents.md).
+
 ## 1. Workflows
 
 ### Browse the action catalog
 
 - **Where:** Integrations & Actions page, Actions tab.
-- **Endpoint:** `GET /workspaces/{workspace_id}/actions`
+- **Endpoint:** `GET /workspaces/{workspace_id}/actions?page=1&limit=20&search=&integration_key=&availability=`
 - **Flow:**
-  1. The frontend loads action stats: Enabled, Disabled, and Unavailable.
-  2. The API returns tool keys, integration keys, read/write type, availability, assigned-agent counts, and the catalog version.
+  1. The frontend loads aggregate action stats: Enabled, Disabled, and Unavailable.
+  2. The API returns a paginated list with tool keys, integration keys, read/write type, availability, assigned-agent counts, and the catalog version.
   3. The frontend renders localized action names, descriptions, and integration labels.
   4. Search and filters narrow the list by integration and category.
   5. Selecting a row opens the action detail.
 - **Outcome:** The action catalog and availability stats render.
 - **Rules:**
+  - The action list is paginated; aggregate availability stats are returned separately.
   - The list includes actions for workspace integrations with a connection record, including invalid connections.
   - Actions from integrations the workspace has never connected are not listed.
-  - `Enabled` means the registry action is active, the connection is healthy, and no workspace override disables it.
+  - `Enabled` means the connection is healthy and no workspace override disables the action.
   - `Disabled` means the user disabled the action for this workspace.
   - `Unavailable` means the integration connection is invalid and must be reconnected.
-  - Registry-disabled actions are hidden.
   - If no actions are available, the page links to the Integrations tab to connect an integration.
   - If the frontend receives an unknown tool key, show the key and an update-required message. Do not crash, hide the row, or silently remove an existing grant.
   - Block new assignment of an unknown tool until the frontend localization is updated. Existing grants remain visible and unchanged.
-  - Release checks should verify that every active built-in tool key has a frontend localization entry.
+  - Release checks should verify that every built-in tool key has a frontend localization entry.
 
 ### Inspect an action
 
@@ -58,7 +62,7 @@ Actions are catalog tools exposed to agents. Built-in action definitions live in
 
 - **Where:** Agent creation, Assign Actions; Agent detail, Assigned Actions, `Edit assignments`.
 - **Endpoints:**
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/actions`
+  - `GET /workspaces/{workspace_id}/agents/{agent_id}/actions?page=1&limit=20&search=`
   - `PUT /workspaces/{workspace_id}/agents/{agent_id}/actions`
 - **Flow:**
   1. The picker loads available Workspace Actions and the current grants.
@@ -66,7 +70,8 @@ Actions are catalog tools exposed to agents. Built-in action definitions live in
   3. Saving replaces the editable grants and preserves stored grants for disabled or unavailable actions.
 - **Outcome:** The agent's action grants are stored. Approval requirements are resolved from workspace policy into those grants.
 - **Rules:**
-  - Only workspace-enabled actions from connected integrations can be granted or changed.
+  - The available-action list is paginated; the current selected tool keys are returned separately.
+  - Only actions enabled for the workspace from connected integrations can be granted or changed.
   - A grant for a disabled or unavailable action is kept but cannot be changed until the action becomes available again.
   - Approval requirements are resolved from workspace policy; this picker does not edit approval flags.
   - A disabled or unavailable grant is omitted from the next turn's `agent_config`.
@@ -77,12 +82,14 @@ Actions are catalog tools exposed to agents. Built-in action definitions live in
 
 - **Where:** Integrations & Actions page, Actions tab, execution history; Agent detail, execution history.
 - **Endpoints:**
-  - `GET /workspaces/{workspace_id}/executions`
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/executions`
+  - `GET /workspaces/{workspace_id}/executions?page=1&limit=20&status=`
+  - `GET /workspaces/{workspace_id}/agents/{agent_id}/executions?page=1&limit=20&status=`
 - **Flow:**
-  1. The Backend returns execution records ordered by `createdAt` descending.
+  1. The Backend returns a paginated list of execution records ordered by `createdAt` descending.
   2. The UI shows action, integration, agent, conversation, status, error, and timing.
-- **Outcome:** The execution table renders.
+- **Outcome:** The execution table renders newest first.
+- **Rules:**
+  - Paginated with the shared defaults and maximum.
 
 ## 2. Workspace availability
 
@@ -113,38 +120,13 @@ stateDiagram-v2
   Unavailable --> Removed: explicit disconnect or registry removal
 ```
 
-## 3. Tool execution
+Execution and catalog mechanics are owned by [Architecture](../architecture.md#tool-execution) and the [AI Service contract](../ai-service-integration/ai-service-contract.md).
 
-When the AI Service calls `POST /internal/workspaces/{workspace_id}/tools/call`:
-
-1. The Backend validates the agent, tool, workspace availability, and arguments.
-2. It creates an execution with `status = running`.
-3. It fetches integration credentials and rechecks the connection.
-4. It resolves the built-in handler from `toolKey`.
-5. Transient provider failures are retried internally with backoff, up to three retries.
-6. On success, the Backend verifies the provider response, stores `result`, and marks the execution `succeeded`.
-7. A built-in `401` marks the connection `invalid` and returns `integration_not_connected`; the execution is `failed`.
-8. Any other terminal failure marks the execution `failed` with an error payload containing `code`, `message`, and `retryable`.
-
-Execution creation, credential lookup, provider calls, retries, and response verification stay inside the Backend.
-
-## 4. Catalog and idempotency
-
-- The system catalog is a code registry keyed by stable tool key. The database does not store built-in action definitions. The AI Service keeps a read-only copy.
-- The catalog version comes from the registry build or content hash, not a database row.
-- CI/CD pushes the catalog to the AI Service with `PUT /catalog`.
-- The AI Service pulls the catalog with `GET /internal/catalog` on startup or when its catalog version is older.
-- Catalog tool fields include tool key, integration key (`integrationKey`), LLM-facing description, input schema, side-effect class, summaries, version, and deprecation.
-- Approval requirements live in `agent_config` as `requires_approval`, not in the catalog.
-- Every execution stores a unique `(workspace_id, idempotency_key)`.
-- Side-effecting calls deduplicate across running and terminal states.
-- Read-only calls deduplicate only while running; completed reads always run live.
-
-## 5. Future work
+## 3. Future work
 
 - Custom HTTP actions: user-defined URL, method, variables, headers, body, test request, and lifecycle.
 
-## 6. Decisions
+## 4. Decisions
 
 - Built-in action definitions and handlers live in code. Database rows represent workspace settings, grants, and executions only.
 - Workspace action settings are overrides, the no row default means enabled.
