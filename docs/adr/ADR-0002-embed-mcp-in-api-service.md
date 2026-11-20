@@ -1,9 +1,11 @@
 # ADR-0002: Embed the MCP runtime in the API service
 
-Status: Accepted
+Status: Superseded by [ADR-0004](ADR-0004-backend-owned-tool-execution.md)
 Date: 2026-11-01
 Deciders: Backend team
 Area: architecture
+
+> **Superseded:** ADR-0004 replaces the MCP runtime with Backend-owned tool execution. This record remains for historical context.
 
 ## Context
 
