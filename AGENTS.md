@@ -1,22 +1,20 @@
 # Repository instructions
 
-Read this file first. Use docs/README.md as the documentation entry, docs/project-context.md for the current product and its constraints, and agent-metadata.md for verified technical and agent state. Treat missing or unverified facts as unknown; never infer a stack from the repository name.
+Read this file first. Use docs/project-context.md for the current product and its constraints, and agent-metadata.md for verified technical and agent state. Treat missing or unverified facts as unknown; never infer a stack from the repository name.
 
 ## FelOps repository boundaries
 
 - `api/` is the TypeScript / Express backend. Run its npm commands from `api/`
   or with `npm --prefix api`. The root is not an npm workspace.
-- The MCP runtime is planned as a module embedded inside `api/`
-  ([ADR-0002](docs/adr/ADR-0002-embed-mcp-in-api-service.md)); no MCP code exists
-  yet, and this repository has no standalone MCP package.
 - The AI Service lives in the separate `FelOps-platform/felops-ai` repository.
   Keep its FastAPI/LangGraph stack separate from this backend.
 - Current executable behavior is the health endpoint and configuration scaffold.
   Architecture documents describe intended services; they do not prove those
   services exist. Read the relevant source before changing business behavior.
-- The Backend saves agent rules; the planned MCP module enforces them. Do not
-  settle credential-vault access or rule synchronization implicitly: these remain
-  open design questions in the team's documentation.
+- The Backend owns the catalog, agent configs, credentials, tool execution,
+  approvals, conversations, and messages. The AI Service owns checkpoints,
+  Qdrant retrieval, ingestion jobs, SSE, and webhooks. Provider credentials never
+  leave the Backend.
 
 ## Backend development and verification
 
@@ -31,6 +29,9 @@ npm test --prefix api
 # Credential-free checks for this agent workflow.
 bash bin/check-agent-workflow.sh
 bash bin/check-opencode-config.sh
+
+# Backend documentation consistency.
+bash bin/check-backend-docs.sh
 ```
 
 - Startup and the existing health test import Infisical configuration. The test
@@ -47,23 +48,17 @@ bash bin/check-opencode-config.sh
 
 ## Team design workflow
 
-Follow the team's [Design → Implementation → Deployment workflow](docs/delivery.md).
-The agent delivery loop below fits inside that sequence; it does not authorize
-deployment.
+Use the team's **Design → Implementation → Deployment** sprint sequence. The
+agent delivery loop below fits inside it and does not replace the team's design
+documents or authorize deployment. For a substantial workflow, capture the main
+sequence, endpoints, data model, important failure cases, and deferred scope.
 
-- [docs/README.md](docs/README.md) is the documentation entry and constitution
-  index. `docs/architecture.md` is the canonical living system design;
-  `docs/database.md` is the canonical living database design. Edit them in place
-  when the design changes. Planned design does not prove implemented code.
-- `docs/delivery.md` holds the sprint sequence and current sprint scope; `docs/`
-  also holds the coding-agent workflow, decisions, and change records.
-- Work records link to the relevant canonical designs and describe the change.
-  Do not split the current architecture or schema across task files. Update
-  affected canonical documents in the same change.
-- API endpoint contracts and request/response mocks belong in the team's Apidog
-  workspace. Its invitation and the database revision are pending; do not invent
-  a workspace URL or completed contract. See
-  [Delivery](docs/delivery.md#current-handoff).
+`docs/` holds backend architecture, API, database, feature, and AI contract design,
+along with the shared coding-agent workflow and work records. Link to the owning
+document rather than duplicating it. Gaper's documentation
+[PR #1](https://github.com/FelOps-platform/felops-backend/pull/1) is a pending
+planning source; check its current merge state before citing its files as local
+facts. Do not restructure its files as part of framework setup.
 
 ## Working with requests
 
@@ -92,39 +87,36 @@ deployment.
 - Verify each commit and report its hash and any remaining work. Do not amend or rewrite published history without explicit authorization.
 - Local commit authorization does not itself authorize a push, merge, or deployment. When the user has already requested one of those actions, complete it within that scope without asking again, synchronize with the latest remote state first, and verify the result.
 
-## Keep the local default branch current
+## Keep the local default branch current (optional)
 
-When the repository has a remote and a shared default branch, this is required. If there is no remote, skip it.
+Use this only when the repository has a remote and a shared default branch. If there is no remote, skip it.
 
-- At every session start, refresh remote state and safely update the local default branch to include the latest remote commits. Before creating any feature branch or worktree from local main/default, refresh remote state and ensure the local default includes those commits. Also refresh at checkpoints and before handoff. Routine fetches and safe fast-forwards are already authorized; do not ask each time.
+- At session start, before a new task or branch, at checkpoints, and before handoff, refresh remote state and fast-forward the local default branch when it is clean and safe. Routine fetches and non-destructive fast-forwards are already authorized; do not ask each time.
 - Resolve the default branch from `origin/HEAD`; fall back to the branch named by the remote, then `main`, then `master`. Do not assume a branch name.
 - If the default branch is checked out and clean, use `git pull --ff-only`.
 - If it is not checked out, use `git fetch origin <default>:<default>` without force.
-- If it is checked out in another worktree, update it only when that worktree is safe and coordinated; never bypass Git's protection. If it cannot be safely updated, do not create a branch or worktree from stale local state; preserve work and report the blocker.
-- If it has unfinished changes or local and remote history diverges, preserve the files and report the blocker. Do not create a branch or worktree from stale local state; never force a fast-forward failure through.
+- If it is checked out in another worktree, update it only when that worktree is safe and coordinated; never bypass Git's protection.
+- If it has unfinished changes, fetch remote state and preserve the files. If local and remote history diverge, report the divergence and resolve it within the authorized task; never force a fast-forward failure through.
 - Compare an active feature branch with the latest `origin/<default>` before shipping. Integrate upstream changes when safe, run relevant checks, and preserve other contributors' work.
 - Never discard edits, reset history, automatically stash work, force-update a branch, or perform an unsolicited push or merge to make synchronization succeed. Report any remaining blocker.
 - This is a workflow rule, not a background scheduler.
 
 ## Project documentation
 
-- docs/README.md is the documentation entry: constitution, reading order, and ownership.
 - docs/project-context.md describes product goals, constraints, terminology, and known unknowns.
-- docs/architecture.md and docs/database.md are the canonical living system and database designs.
-- docs/delivery.md defines the team delivery sequence and current sprint scope.
-- docs/onboarding/agent-onboarding.md is the entry point for a new contributor; docs/ai-engineering-rules.md applies when changing an LLM-backed feature.
+- docs/onboarding/agent-onboarding.md is the entry point for a new contributor; docs/standards/ai-engineering-rules.md applies when changing an LLM-backed feature.
 - agent-metadata.md records verified stack, architecture, integrations, and agent behavior. Update it when those facts change.
 - Significant work gets one folder in docs/work/ containing the brief, plan, and optional verification notes. Use an issue identifier when one is supplied; otherwise use a short descriptive slug.
-- Work folders record the goal, design changes, decisions, and verification. Link the current architecture, database design, and API contracts rather than copying them.
 - Use the lifecycle Draft → Planned → In Progress → Done. Record a blocking decision as Awaiting input. Mark work Done only after its acceptance criteria and relevant verification are complete.
 - Record durable architecture decisions in sequential docs/adr/ entries. Do not create ADRs for routine, reversible choices.
 - Keep formal change records with their work folder; keep personal scratch notes and raw private evidence outside this repository. Do not create a generic notes or archive area.
+- Run `bash bin/check-backend-docs.sh` after changing `docs/`; it checks links, shared conventions, schema/fence balance, and current client-contract fields.
 
 ## Agent tools and skills
 
-The host agent may use its native subagents and tools. Do not assume a particular provider, model name, or agent configuration is available. Claude Code, Cursor, and OpenCode project roles are defined under their respective directories. Follow [docs/agent-routing.md](docs/agent-routing.md): explorers use a fast, low-cost tier; implementers and independent reviewers use a balanced tier. Resolve the host's supported models and bind tiers when possible; document inheritance-only limitations. Native role frontmatter stays at `model: inherit` for Claude Code and Cursor; OpenCode V2 has no inherit value, so its `.opencode/agents` roles omit `model` to inherit the caller's model.
+The host agent may use its native subagents and tools. Do not assume a particular provider, model name, or agent configuration is available. Claude Code, Cursor, and OpenCode project roles are defined under their respective directories. Follow [docs/standards/agent-routing.md](docs/standards/agent-routing.md): explorers use a fast, low-cost tier; implementers and independent reviewers use a balanced tier. Resolve the host's supported models and bind tiers when possible; document inheritance-only limitations. Native role frontmatter stays at `model: inherit` for Claude Code and Cursor; OpenCode V2 has no inherit value, so its `.opencode/agents` roles omit `model` to inherit the caller's model.
 
-Available repeatable workflows live in the host adapters: `.opencode/commands` and `.claude/commands` provide onboard, plan, implement, and ship, and skills under `.claude/skills` (shared by OpenCode) and `.cursor/skills` cover clarification, implementation planning, ADRs, TDD, bug diagnosis, and pull-request preparation.
+Available repeatable workflows live in the host adapters: `.opencode/commands` and `.claude/commands` provide onboard, plan, implement, and ship; OpenCode also provides `/design` for backend design sessions. Skills under `.claude/skills` (shared by OpenCode) and `.cursor/skills` cover clarification, implementation planning, ADRs, TDD, bug diagnosis, and pull-request preparation.
 
 ## Local helper requirements
 

@@ -51,15 +51,10 @@ if (files.length === 0) process.exit(0);
 let docsUpdated = false;
 let codeChanged = false;
 for (const f of files) {
-  if (
-    f === 'agent-metadata.md' || f === 'docs/README.md' ||
-    f === 'docs/project-context.md' || f === 'docs/architecture.md' ||
-    f === 'docs/database.md' || f === 'docs/delivery.md' ||
-    f.startsWith('docs/work/') || f.startsWith('docs/adr/')
-  ) {
-    docsUpdated = true; // recognized constitution docs, work records, ADRs, or metadata were touched
+  if (f === 'agent-metadata.md' || f.startsWith('docs/')) {
+    docsUpdated = true; // project docs or verified metadata were touched
   } else if (
-    f.startsWith('docs/') || f.startsWith('.claude/') || f.startsWith('.cursor/') ||
+    f.startsWith('.claude/') || f.startsWith('.cursor/') ||
     f.startsWith('.github/') || f.endsWith('.md') || f.startsWith('LICENSE')
   ) {
     // housekeeping, not code — ignore
@@ -70,7 +65,7 @@ for (const f of files) {
 
 if (codeChanged && !docsUpdated) {
   const message =
-    'Docs reminder: code changed but no work doc, project context, ADR, constitution document, or agent-metadata.md ' +
+    'Docs reminder: code changed but no project doc or agent-metadata.md update was found. ' +
     'was updated. If this change was significant, update verified project records before shipping.';
   process.stdout.write(JSON.stringify({ systemMessage: message }) + '\n');
 }
