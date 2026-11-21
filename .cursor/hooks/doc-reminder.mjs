@@ -64,7 +64,7 @@ for (const f of files) {
 if (codeChanged && !docsUpdated) {
   const message =
     'Docs reminder: code changed but no project doc or agent-metadata.md update was found. ' +
-    'was updated. If this change was significant, update verified project records before finishing.';
+    'If this change was significant, update verified project records before finishing.';
   process.stdout.write(JSON.stringify({ followup_message: message }) + '\n');
 }
 process.exit(0);

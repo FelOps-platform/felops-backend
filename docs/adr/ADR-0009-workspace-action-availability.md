@@ -35,7 +35,7 @@ Agent grants are separate from workspace availability. A disabled or unavailable
 - Availability status is computed from registry membership, connection state, and workspace setting.
 - Temporary credential failures do not destroy agent configuration.
 - Explicit disconnect is destructive for that integration's action configuration.
-- The action UI can show Enabled, Disabled, and Unavailable states without a stored availability column.
+- The action UI can show `Enabled`, `Disabled`, and `Unavailable` states without a stored availability column.
 
 ## References
 

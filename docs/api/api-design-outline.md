@@ -15,15 +15,15 @@ This outline keeps only API organization, shared formatting, and common error ru
 
 ## 2. Resource groups
 
-The UI presents Integrations and Actions as two tabs of one page. They remain separate API resources.
+The frontend presents Integrations and Actions as two views of one page. They remain separate API resources.
 
-Definitions for integrations, built-in actions, and channel types live in code. The database stores workspace state only: OAuth state and pending selections, connections, action settings, grants, executions, channels, and configuration.
+Definitions for integrations, built-in actions, and channel types live in code. The database stores workspace state only: OAuth state, connections, action settings, grants, executions, channels, and configuration.
 
 | Group | Main resources | Representative endpoints |
 | --- | --- | --- |
 | Health | service health | `GET /api/v1/health` |
 | Auth / workspace | user, workspace, member | auth and workspace settings |
-| Integrations | integration, connection, OAuth flow | `GET .../integrations/{integration_key}`, `POST .../oauth/start`, `GET /api/v1/integrations/oauth/callback`, `POST .../oauth/complete` |
+| Integrations | integration, connection, OAuth flow | `GET .../integrations/{integration_key}`, `POST .../oauth/start`, `GET /api/v1/integrations/oauth/callback` |
 | Actions | action, catalog, workspace setting | `GET .../actions`, `GET .../actions/{tool_key}`, `PUT .../actions/{tool_key}/availability`, agent grants |
 | Knowledge | source, ingestion | `GET/POST /workspaces/{workspace_id}/knowledge`, `GET/DELETE .../knowledge/{source_id}`, `POST .../knowledge/{source_id}/retry` |
 | Channels | channel instance, agent assignment | `GET/POST /workspaces/{workspace_id}/channels`, `GET/PATCH .../channels/{channel_id}` |
@@ -54,19 +54,19 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 - `422 VALIDATION_ERROR` details use `{ field, code, params? }`.
 - `503 UPSTREAM_UNAVAILABLE` details use `{ service: "storage" | "ai_service" }`.
 - `PATCH` returns `204` unless the server transforms values the client must see.
-- Timestamps are ISO 8601 UTC. IDs are numeric unless a resource uses a UUID/string ID, such as approvals, jobs, and OAuth pending connections.
+- Timestamps are ISO 8601 UTC. IDs are numeric unless a resource uses a UUID/string ID, such as approvals and jobs.
 - Stable slugs use `*_key` and API tool identity uses `toolKey`. Integration keys and tool keys are the stable identifiers across the code registry and database rows.
 - The Backend returns stable keys and user-owned text only. Frontend localization owns static labels, descriptions, and category labels for integrations, actions, and channel types. Action descriptions in the catalog are LLM-facing and are not returned for display.
 - Action catalog responses include `catalogVersion`. If the frontend receives an unknown `tool_key`, show the key with an update-required state, preserve existing grants, and block new assignment until localization is updated. Release checks must cover every built-in tool key.
 
 ### Pagination policy
 
-- Paginate collections that grow with user activity or history: workspace knowledge, workspace actions, agent actions, agent knowledge, executions, approvals, and channels.
+- Paginate collections that grow with user activity or history: workspace knowledge, workspace actions, executions, approvals, and channels.
 - The agents list is already paginated.
-- Do not paginate bounded code registries or small fixed sets: integrations, OAuth accounts, and single-resource detail endpoints.
+- Do not paginate bounded code registries or small fixed sets: integrations and single-resource detail endpoints.
 - Use `page`, `limit`, and relevant `search` or filter parameters. Default `limit=20`; maximum `100`.
 - Keep aggregate statistics separate from paginated rows. Do not calculate action or knowledge statistics by loading every page.
-- For agent action and knowledge pickers, return the current selected IDs separately from the paginated available items.
+- Agent detail returns all assigned actions and sources without pagination. There is no assignment cap in the MVP. Workspace lists remain paginated.
 
 ## 4. Common status codes
 
@@ -77,7 +77,6 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 | `403`  | `FORBIDDEN`                             | Authenticated without required access.                   |
 | `404`  | `NOT_FOUND`                             | Workspace or resource missing.                           |
 | `409`  | resource-specific                       | Duplicate, already decided, or invalid state transition. |
-| `410`  | `PENDING_EXPIRED`                       | The OAuth pending connection expired.                    |
 | `413`  | `PAYLOAD_TOO_LARGE`                     | Upload or response cap exceeded.                         |
 | `422`  | `VALIDATION_ERROR` or resource-specific | Semantically invalid input or unavailable action/tool.   |
 | `429`  | `RATE_LIMITED`                          | Client rate limit.                                       |
@@ -85,18 +84,19 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 | `502`  | `UPSTREAM_INVALID_RESPONSE`             | Upstream returned an unusable response.                  |
 | `503`  | `UPSTREAM_UNAVAILABLE`                  | Storage, AI, or other external Service unavailable.      |
 
-`details.resource` values: `workspace`, `integration`, `connection`, `oauth_pending_connection`, `action`, `agent`, `knowledge_source`, `channel`, `execution`, `approval`, `conversation`.
+`details.resource` values: `workspace`, `integration`, `connection`, `action`, `agent`, `knowledge_source`, `channel`, `execution`, `approval`, `conversation`.
 
 ## 5. Channel rules
 
 - `GET /workspaces/{workspace_id}/channels?page=1&limit=20&search=`
 - `POST /workspaces/{workspace_id}/channels`
 - `GET/PATCH /workspaces/{workspace_id}/channels/{channel_id}`
-- A workspace may have multiple channel instances of the same `channel_key`.
-- Each channel has at most one agent. A channel may be created unassigned, and an agent may operate multiple channels.
-- A channel instance has a workspace-specific user-provided `name`; names are unique per workspace.
+- A workspace may have multiple channel instances of the same `channel_type`.
+- Each channel has at most one agent. A channel may be created unassigned, and an agent may serve multiple channels.
+- Each channel has a Backend-generated numeric `channel_id`. The client submits `channel_type`, name, optional agent, and configuration on create.
+- Names are unique per workspace.
 - Channel type definitions live in code; the database stores workspace instances only.
-- The frontend owns the channel type catalog and maps `channel_key` to localized labels and descriptions. There is no channel type discovery endpoint; the Backend validates the submitted key.
+- The frontend owns the channel type catalog and maps `channel_type` to localized labels and descriptions. There is no channel type discovery endpoint; the Backend validates the submitted `channel_type`.
 - Duplicate channel names return `409 DUPLICATE_NAME`.
 - Channel setup is separate from agent creation and editing.
 - Transport, messages, delivery state, and conversations are not complete.
@@ -121,16 +121,21 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 - Creation fields: name and instructions. The list shows an instruction summary.
 - Knowledge is configured in step 3 and can be edited later. Agents select workspace sources only; they cannot upload their own.
 - Channels are configured separately.
-- Agent action grants carry `requiresApproval` resolved from workspace policy. Policy configuration is outside this outline; the action picker does not edit approval flags.
+- Agent action grants carry `requiresApproval` resolved from workspace policy. Policy configuration is outside this outline; the action assignment flow does not edit approval flags.
 - The Backend sends `agent_config` on every AI turn and approval decision, including selected workspace source IDs. The AI Service does not store it.
 - Agent action grants reference `tool_key` values from the code catalog. The frontend maps tool keys and integration keys to localized display text.
+- Agent detail returns full `assignedActions` and `assignedSources` for display and assignment state.
+- The action assignment flow loads the paginated workspace actions list, marks rows from agent detail's assigned actions, and does not append duplicate assigned rows. During creation, it uses the same workspace list and keeps selections locally.
+- Action assignment `PUT` accepts `{ "toolKeys": [...] }`, validates newly selected actions, preserves locked grants, and returns the final assigned actions.
 - Agent grants are kept when a workspace action is disabled or unavailable. Disabled and unavailable tools are omitted from `agent_config`.
 
 ## 8. Knowledge rules
 
 - Workspace Knowledge is the only source library. There are no agent-specific sources or uploads.
 - Sources are stored once per workspace and deduplicated by content hash within it. A source can be assigned to multiple agents.
-- Agent knowledge `PUT` replaces selected assignments after validating that every source belongs to the workspace and is ready.
+- Duplicate content returns `409 DUPLICATE_SOURCE` with `details` identifying the existing source. Do not create a source, ingest again, or overwrite existing metadata.
+- Agent detail returns `assignedSources`. The knowledge assignment flow loads the paginated workspace knowledge list, marks rows from agent detail's assigned sources, and does not append duplicate assigned sources. Processing and Failed sources remain visible; existing non-ready assignments are locked.
+- Agent knowledge `PUT` accepts `{ "sourceIds": [...] }`, validates that every newly selected source belongs to the workspace and is ready, preserves non-ready assignments, and returns the final assigned sources. During creation, use the workspace knowledge list and keep selections locally.
 - Source types: PDF, DOCX, Plaintext (TXT), and Website URL.
 - API source fields: `name`, optional `description`, `type`, `availability`, `date`, and `assignedAgentsCount`. `type` is `pdf | docx | txt | url`; storage splits URL sources from file subtypes. Name and description belong to the workspace source.
 - Availability: `ready | processing | failed`.
@@ -140,14 +145,10 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 ## 9. OAuth integration rules
 
 - Start returns the provider authorization URL. The Backend validates workspace membership and the integration key.
-- Store only a SHA-256 hash of the one-time state with workspace, integration, initiator, callback URI, return path, and a 10 minute expiry.
-- The OAuth callback is public and state-bound. It exchanges the code server-side and redirects to the frontend with a safe result.
-- Provider tokens stay in the Backend, encrypted with AES-256-GCM.
-- A provider with multiple accessible accounts uses a 10 minute pending connection and explicit account selection.
-- Refresh rotating tokens under a row lock. A failed refresh marks the connection `invalid`.
-- The provider profile in code defines endpoints, scopes, client credentials, account discovery, API base URL, token endpoint authentication, and refresh behavior.
-- The redirect URI sent at authorization must exactly match the value sent at token exchange and registered with the provider.
-- Tokens never appear in frontend URLs, browser storage, or logs.
+- The OAuth callback is public and state-bound. The Backend handles the provider response and redirects to the frontend with a safe result.
+- Provider tokens stay in the Backend and never appear in frontend URLs, browser storage, or logs.
+- A failed connection marks the integration `invalid` and requires reconnecting.
+- Provider-specific OAuth details live in the provider adapter.
 
 ## 10. OpenAPI generation notes
 

@@ -1,6 +1,6 @@
 # Integrations
 
-Integrations connect a workspace to an external system. Integration definitions, OAuth client settings, scopes, supported actions, and adapters live in the Backend code registry. The database stores workspace connections, encrypted OAuth tokens, external account details, and connection state. The frontend maps each `integration_key` to localized labels, descriptions, and category.
+Integrations connect a workspace to an external system through code-defined providers and per-workspace connections.
 
 > **Status:** Planned design. No API behavior is implemented unless source code proves otherwise.
 
@@ -10,128 +10,80 @@ Action availability and agent grants are owned by [Actions](actions.md).
 
 ### Browse integrations
 
-- **Where:** Integrations & Actions page, Integrations tab.
-- **Endpoint:** `GET /workspaces/{workspace_id}/integrations`
+- **Where:** Integrations page.
 - **Flow:**
-  1. The frontend loads summary stats for total integrations, connected, connection issues, and available actions.
-  2. The API returns integration keys, connection status, last validation, and supported action counts. The frontend localizes integration names, descriptions, and categories.
-  3. `connectionStatus` is `connected`, `invalid`, or `null`; the UI labels these `Connected`, `Connection issue`, and `Not connected`.
-  4. A `null` status shows `Connect`, an `invalid` status shows `Reconnect`, and a connected integration opens its detail.
-- **Outcome:** The integration list and connection actions render.
+  1. The frontend sends `GET /workspaces/{workspace_id}/integrations`.
+  2. The Backend returns integrations and summary stats.
+  3. Each integration includes its key, connection status, connected account, last validation, and supported action count.
+  4. The frontend renders the integration list.
+- **Rules:**
+  - `connectionStatus` is `connected`, `invalid`, or `not_connected`; the frontend labels these `Connected`, `Connection issue`, and `Not connected`.
 
 ### Inspect an integration
 
 - **Where:** Integration detail.
-- **Endpoint:** `GET /workspaces/{workspace_id}/integrations/{integration_key}`
 - **Flow:**
-  1. The frontend loads the integration key and its workspace connection, then maps the key to localized display text.
-  2. Unknown integration keys return `404 NOT_FOUND`.
-  3. The detail shows the connected external account, granted scopes, last validation, and available actions.
-- **Outcome:** The integration detail and connection state render.
-
-### Start OAuth connection
-
-- **Where:** Integrations page, `Connect Integration`; integration detail, `Reconnect`.
-- **Endpoint:** `POST /workspaces/{workspace_id}/integrations/{integration_key}/oauth/start`
-- **Flow:**
-  1. The frontend loads integration keys and maps them to localized names, descriptions, categories, and connection actions.
-  2. The Backend validates workspace membership, the integration key, and the code registry entry.
-  3. It generates a random state value, stores only its SHA-256 hash with the workspace, integration, initiating user, backend callback URI, optional return path, and a 10 minute expiry. Return paths must be relative or allowlisted.
-  4. It builds the provider authorization URL from the code registry.
-  5. The URL includes the provider client ID, scopes, exact redirect URI, state, `response_type=code`, and provider-specific authorization parameters from the code registry.
-  6. The endpoint returns the authorization URL and expiry.
-  7. The frontend navigates the browser to the provider.
-- **Outcome:** The user is at the provider consent screen. Tokens are not requested by the frontend.
+  1. The frontend sends `GET /workspaces/{workspace_id}/integrations/{integration_key}`.
+  2. The Backend returns connection status, connected account, last validation, and supported actions.
+  3. Each action includes its tool key and workspace availability.
+  4. The frontend renders the integration detail.
 - **Errors:**
   - `404 NOT_FOUND`: the workspace or integration does not exist.
-  - `409 OAUTH_ALREADY_PENDING`: a valid pending authorization already exists for this workspace integration.
 
-### Handle OAuth callback
+### Connect an integration
 
-- **Where:** Public Backend callback reached by the provider redirect.
-- **Endpoint:** `GET /api/v1/integrations/oauth/callback?code=&state=&error=`
+- **Where:** Integrations page, integration detail, and provider consent.
 - **Flow:**
-  1. The provider redirects the browser with a code or an OAuth error.
-  2. The Backend hashes the state, looks it up, verifies expiry and workspace, and consumes it once.
-  3. If the provider returned an error, the Backend redirects to the configured frontend base with a safe error code.
-  4. The Backend exchanges the authorization code at the provider token endpoint with the client ID, client secret, and exact redirect URI.
-  5. The Backend fetches accessible provider accounts using the account discovery settings in the code registry, including account ID, name, URL, and granted scopes.
-  6. If no account is available, the Backend redirects with an error.
-  7. If one account is available, the Backend encrypts the token set, stores the connection, and redirects to the frontend success state.
-  8. If multiple accounts are available, the Backend stores a short-lived pending connection and redirects to the provider account selection state.
-- **Outcome:** The browser returns to the frontend. Access tokens and refresh tokens never appear in the URL or frontend state.
-- **Errors:** OAuth failures redirect with an error code instead of returning a JSON response. Invalid, expired, or consumed state is rejected without revealing connection data.
-
-### Select a provider account
-
-- **Where:** Frontend account selection after a multi-account callback.
-- **Endpoints:**
-  - `GET /workspaces/{workspace_id}/integrations/{integration_key}/oauth/pending/{pending_id}`
-  - `POST /workspaces/{workspace_id}/integrations/{integration_key}/oauth/complete`
-- **Flow:**
-  1. The frontend loads the pending connection and its accessible provider accounts. Pending selections also expire after 10 minutes.
-  2. The user selects one account.
-  3. The Backend verifies membership, ownership, expiry, and that the account ID is in the pending account list.
-  4. It encrypts the token set, stores the connection with the external account ID and name, and consumes the pending record.
-- **Outcome:** The provider account is connected. Its actions become available in the workspace and default to enabled when no override exists.
+  1. The frontend sends `POST /workspaces/{workspace_id}/integrations/{integration_key}/oauth/start`.
+  2. The Backend returns the provider authorization URL.
+  3. The browser opens the provider consent screen.
+  4. The provider redirects to `GET /api/v1/integrations/oauth/callback`.
+  5. The Backend completes the connection and redirects to the frontend.
+  6. The frontend shows the connected integration and available actions.
 - **Errors:**
-  - `404 NOT_FOUND`: the pending connection or account does not exist.
-  - `409 PENDING_ALREADY_CONSUMED`: the pending connection was already completed.
-  - `410 PENDING_EXPIRED`: the selection window expired; start OAuth again.
+  - `404 NOT_FOUND`: the workspace or integration does not exist.
+  - `409 INTEGRATION_ALREADY_CONNECTED`: a healthy connection already exists. The user must remove it before connecting a different account.
+  - Provider errors return to the frontend with a safe error code.
+- **Rules:**
+  - An invalid connection can be reconnected in place through the same flow. Reconnecting replaces credentials and account metadata while preserving workspace action settings and agent grants.
 
-### Disconnect
+### Remove an integration connection
 
-- **Where:** Integration detail, `Disconnect`.
-- **Endpoint:** `DELETE /workspaces/{workspace_id}/integrations/{integration_key}/connection`
+- **Where:** Integration detail.
 - **Flow:**
-  1. The Backend deletes the connection and its encrypted tokens.
-  2. It deletes OAuth states and pending connections for that workspace integration.
+  1. The frontend sends `DELETE /workspaces/{workspace_id}/integrations/{integration_key}/connection`.
+  2. The Backend removes the connection, credentials, and OAuth state.
   3. It deletes workspace action settings and agent action grants for the integration's tool keys.
-- **Outcome:** The integration is disconnected and its actions disappear from the workspace. Reconnecting starts with default enabled actions.
 - **Errors:**
-  - `404 NOT_FOUND`: no connection exists.
+  - `404 NOT_FOUND`: the workspace or connection does not exist.
 
-## 2. Connection health
+## 2. Connection states
 
-- A provider `401` during tool execution marks the connection `invalid`.
-- Invalid credentials make the integration's workspace actions `Unavailable` while preserving their settings and agent grants.
-- Before a provider call, the Backend refreshes the access token when it is within 60 seconds of expiry.
-- Providers that rotate refresh tokens require the Backend to replace the access token and refresh token together under a row lock.
-- A failed refresh, revoked grant, or `invalid_grant` marks the connection `invalid` and requires OAuth reconnect.
-- A `403`, `5xx`, or timeout is an execution failure, not a connection-state change.
-- A disconnected or invalid integration is omitted from the agent's next turn tool list.
-- The Backend rechecks the integration connection when `tools/call` executes; a call against an unavailable integration returns `integration_not_connected`.
-- The AI Service is not notified when a workspace connects or disconnects an integration.
+- `Not connected`: no active credentials. The integration's actions are unavailable.
+- `Connected`: credentials are valid. The integration's actions are available.
+- `Connection issue`: the provider rejected access or credentials can no longer be refreshed. Actions are unavailable until the user reconnects.
+- Removing a connection returns the integration to `Not connected`.
 
 ```mermaid
 stateDiagram-v2
-  state "No connection" as NoConnection
+  state "Not connected" as NotConnected
   state "Connected" as Connected
-  state "Invalid credentials" as Invalid
-  [*] --> NoConnection
-  NoConnection --> Connected: OAuth callback or account selection
-  Connected --> Invalid: refresh or provider 401
-  Invalid --> Connected: OAuth reconnect
-  Connected --> NoConnection: disconnect
-  Invalid --> NoConnection: disconnect
+  state "Connection issue" as Issue
+  [*] --> NotConnected
+  NotConnected --> Connected: connection completes
+  Connected --> Issue: credentials rejected
+  Issue --> Connected: reconnect
+  Connected --> NotConnected: connection removed
+  Issue --> NotConnected: connection removed
 ```
 
-OAuth provider registry fields and token handling are owned by [Architecture](../architecture.md#oauth-provider-profile). This page owns the user-facing connection lifecycle and connection health.
+OAuth connection mechanics are owned by [ADR-0007](../adr/ADR-0007-oauth-provider-integrations.md). This page owns the user-facing connection lifecycle.
 
 ## 3. Future work
 
-- Scope expansion and re-consent when required permissions change.
-- Provider token revocation on disconnect.
-- Additional OAuth providers.
+- Different connection methods such as API keys.
 
 ## 4. Decisions
 
-- Integration definitions and provider adapters live in code. Database rows represent workspace connection state only, including OAuth state and pending account selections.
+- Integration definitions and provider adapters live in code. Database rows represent workspace connection state only, including OAuth state.
 - Frontend localization owns integration names, descriptions, and category labels. The Backend returns stable keys only.
-- OAuth authorization uses the code flow with one-time state and a Backend callback.
-- OAuth tokens are encrypted with AES-256-GCM and never leave the Backend.
-- Rotating refresh tokens are replaced atomically.
-- Multi-account providers require explicit account selection.
-- Disconnecting removes connection credentials, workspace action settings, and agent action grants.
-- Invalid credentials keep action settings and agent grants but make actions unavailable.
-- Integrations available to the workspace are defined by the code registry; connection state is stored per workspace.

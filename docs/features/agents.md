@@ -1,6 +1,6 @@
 # Agents
 
-An agent has instructions, assigned Workspace Actions, selected workspace sources, and resolved approval requirements. Channels are assigned separately; one agent can serve multiple channels.
+An agent combines instructions, actions, knowledge, and approval requirements.
 
 > **Status:** Planned design. No API behavior is implemented unless source code proves otherwise.
 
@@ -11,32 +11,27 @@ Action availability is owned by [Actions](actions.md); source readiness by [Know
 ### Browse agents
 
 - **Where:** Agents page.
-- **Endpoint:** `GET /workspaces/{workspace_id}/agents?page=1&limit=20&search=`
 - **Flow:**
-  1. The page loads agent summaries.
-  2. Each row shows the agent name, an instruction summary, and the assigned action count.
-  3. Search matches the agent name.
-- **Outcome:** The agent list renders.
+  1. The frontend sends `GET /workspaces/{workspace_id}/agents?page=1&limit=20&search=` and loads agent summaries.
+  2. Each summary shows the agent name, an instruction summary, and the assigned action count.
 - **Rules:**
   - Defaults: page 1, limit 20, with no search applied.
   - The instruction summary is the first 100 characters of Instructions, plus an ellipsis when longer.
 
 ### Create an agent
 
-- **Where:** Agents page, `create Agent`.
-- **Endpoints:**
-  - `GET /workspaces/{workspace_id}/actions?page=1&limit=20&search=`
-  - `GET /workspaces/{workspace_id}/knowledge?page=1&limit=20&search=&type=&status=`
-  - `POST /workspaces/{workspace_id}/agents`
+- **Where:** Agents page.
 - **Flow:**
   1. **Basic information.** The user enters Agent name and Instructions. Both are required.
-  2. **Assign Actions.** The user selects available Workspace Actions; unavailable actions remain visible but cannot be selected. Approval requirements come from workspace policy.
-  3. **Configure Knowledge.** The user selects Ready sources from Workspace Knowledge. Processing and Failed sources are unavailable. Agents cannot create knowledge sources.
-  4. **Review & save.** Review the summary, then choose `Save Agent`. The Backend:
-     1. Validates the name, instructions, and selected sources. Every selected source must belong to the workspace and be ready.
+  2. **Assign Actions.** The frontend sends `GET /workspaces/{workspace_id}/actions?page=1&limit=20&search=` and lists all workspace actions.
+  3. The user selects actions. `Unavailable` actions stay visible but disabled. The frontend keeps the selected tool keys locally.
+  4. **Configure Knowledge.** The frontend sends `GET /workspaces/{workspace_id}/knowledge?page=1&limit=20&search=&type=&status=` and lists all workspace sources.
+  5. The user selects `Ready` sources. `Processing` and `Failed` sources stay visible but disabled. The frontend keeps the selected source IDs locally.
+  6. **Review & save.** The frontend shows the selected action and source counts.
+  7. The frontend sends `POST /workspaces/{workspace_id}/agents` with the reviewed agent data. The Backend:
+     1. Validates the name, instructions, selected actions, and selected sources.
      2. Creates the agent with its instructions, source assignments, and action grants.
      3. Returns `201 Created` with the agent.
-- **Outcome:** The agent is created with its actions and selected sources. Actions and knowledge are optional. Channel setup is separate.
 - **Rules:** Creation progress is not stored. Closing the browser discards the setup; the next attempt goes back to step 1.
 - **Errors:**
   - `422 VALIDATION_ERROR`: a required field is missing or a selected action or source is invalid.
@@ -45,68 +40,61 @@ Action availability is owned by [Actions](actions.md); source readiness by [Know
 ### View an agent
 
 - **Where:** Agent detail.
-- **Endpoint:** `GET /workspaces/{workspace_id}/agents/{agent_id}`
 - **Flow:**
-  1. The page loads the agent's instructions, assigned actions, and selected sources.
-  2. `Edit Agent` changes agent details; `Edit assignments` changes action grants.
-  3. Channel membership is shown in Channels settings, not on this page.
-- **Outcome:** The agent summary, actions, and selected sources render.
+  1. The frontend sends `GET /workspaces/{workspace_id}/agents/{agent_id}`.
+  2. The response includes the agent's instructions, `assignedActions`, and `assignedSources`.
+  3. Assigned sets are not paginated because they are expected to be small, unlike the workspace action and knowledge lists.
+  4. Channel membership is shown in Channels settings, not on this page.
 
 ### Edit basic information
 
-- **Where:** Agent detail, `Edit Agent`.
-- **Endpoint:** `PATCH /workspaces/{workspace_id}/agents/{agent_id}`
+- **Where:** Agent detail.
 - **Flow:**
   1. The user changes Agent name or Instructions.
-  2. The Backend validates and saves the partial update.
-- **Outcome:** The next turn receives the new `agent_config`.
+  2. The frontend sends `PATCH /workspaces/{workspace_id}/agents/{agent_id}`.
+  3. The Backend validates and saves the partial update.
 - **Errors:**
   - `409 DUPLICATE_NAME`: the new name is already used.
   - `422 VALIDATION_ERROR`: a required field is invalid.
 
 ### Edit assigned actions
 
-- **Where:** Agent detail, Assigned Actions, `Edit assignments`.
-- **Endpoints:**
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/actions?page=1&limit=20&search=`
-  - `PUT /workspaces/{workspace_id}/agents/{agent_id}/actions`
+- **Where:** Agent detail, Assigned Actions.
 - **Flow:**
-  1. The picker shows available Workspace Actions and current grants.
-  2. The user selects the actions the agent may request; unavailable actions are disabled.
-  3. Saving replaces editable grants and preserves stored grants for disabled or unavailable actions.
-- **Outcome:** Action grants are stored. Approval requirements come from workspace policy.
-- **Rules:**
-  - The available-action list is paginated; the current selected tool keys are returned separately.
-  - Only actions enabled for the workspace from connected integrations can be granted or changed.
-  - Grants for disabled or unavailable actions are kept but cannot change until the action is available again.
-  - Disabled and unavailable tools are omitted from the next `agent_config`.
-  - Approval requirements come from workspace policy, not this picker.
+  1. The agent detail response includes `assignedActions` without pagination.
+  2. The frontend uses each action's `toolKey` as the selected key.
+  3. The frontend sends `GET /workspaces/{workspace_id}/actions?page=1&limit=20&search=&integration_key=&availability=`.
+  4. The frontend renders one flat list of workspace actions. Rows matching an assigned `toolKey` are checked, not duplicated.
+  5. The user selects the actions the agent may request.
+  6. The frontend sends `PUT /workspaces/{workspace_id}/agents/{agent_id}/actions` with the full `toolKeys` set.
+  7. The Backend returns the final assigned actions.
+- **Errors:**
+  - `404 NOT_FOUND`: the workspace or agent does not exist.
+  - `422 VALIDATION_ERROR`: a selected action is invalid or unavailable.
 
 ### Configure agent knowledge
 
-- **Where:** Agent detail, `Edit Agent`, Configure Knowledge.
-- **Endpoints:**
-  - `GET /workspaces/{workspace_id}/agents/{agent_id}/knowledge?page=1&limit=20&search=`
-  - `PUT /workspaces/{workspace_id}/agents/{agent_id}/knowledge`
+- **Where:** Agent detail, Configure Knowledge.
 - **Flow:**
-  1. The source picker lists workspace sources. Only Ready sources can be selected.
-  2. The user selects the sources the agent may use.
-  3. The Backend validates that every source belongs to the workspace and is Ready, then replaces the agent's assignments.
-- **Outcome:** The agent retrieves only its selected workspace sources.
-- **Rules:**
-  - The available-source list is paginated; the current selected source IDs are returned separately.
+  1. The agent detail response includes `assignedSources` without pagination.
+  2. The frontend uses each source's `id` as the assigned source ID.
+  3. The frontend sends `GET /workspaces/{workspace_id}/knowledge?page=1&limit=20&search=&type=&status=`.
+  4. The frontend renders one flat list of workspace sources. Rows matching an assigned source ID are checked, not duplicated.
+  5. The user selects sources.
+  6. The frontend sends `PUT /workspaces/{workspace_id}/agents/{agent_id}/knowledge` with the full `sourceIds` set.
+  7. The Backend returns the final assigned sources.
 - **Errors:**
+  - `404 NOT_FOUND`: the workspace or agent does not exist.
   - `422 VALIDATION_ERROR`: a selected source does not exist in this workspace or is not ready.
 
 ### Delete an agent
 
-- **Where:** Agent detail, `Delete agent`.
-- **Endpoint:** `DELETE /workspaces/{workspace_id}/agents/{agent_id}`
+- **Where:** Agent detail.
 - **Flow:**
-  1. The Backend removes the agent's source assignments. Workspace sources remain.
-  2. The Backend hard-deletes the agent and its grants, conversations, executions, and approvals.
-  3. Channel assignments are cleared; the channel records remain for reassignment.
-- **Outcome:** The agent is removed and the UI returns to the agent list.
+  1. The frontend sends `DELETE /workspaces/{workspace_id}/agents/{agent_id}`.
+  2. The Backend removes the agent's source assignments. Workspace sources remain.
+  3. The Backend hard-deletes the agent and its grants, conversations, executions, and approvals.
+  4. Channel assignments are cleared; the channel records remain for reassignment.
 
 ## 2. Turn configuration
 
@@ -130,11 +118,11 @@ The Backend sends the current `agent_config` with every turn and approval decisi
 }
 ```
 
-The form captures Agent name and Instructions. The Backend sends Instructions as `instructions.role`. `language_constraints`, `locale`, and `response_format` use defaults because the form does not expose them. Tool approval flags come from workspace policy.
+The Backend sends Instructions as `instructions.role`. `language_constraints`, `locale`, and `response_format` use defaults because the creation form does not expose them. Tool approval flags come from workspace policy.
 
 The AI Service stores no agent configuration. Edits apply to the next message. The Backend rechecks grants and integration connection status when a tool executes.
 
-The AI Service retrieves only sources selected for the agent. It owns ingestion.
+The AI Service retrieves only sources assigned to the agent. It owns ingestion.
 
 ## 3. Future work
 
@@ -143,10 +131,4 @@ The AI Service retrieves only sources selected for the agent. It owns ingestion.
 
 ## 4. Decisions
 
-- Agent names are unique per workspace.
-- The AI Service stores no agent configuration; the Backend sends it every turn.
-- Channel assignment is separate from agent creation.
-- Knowledge is selected from Workspace Knowledge and can change from the agent edit flow.
-- Creation progress is not persisted.
-- Hard deletion removes agent-owned records; channels remain and are unassigned.
-- Only assigned workspace sources are retrieved.
+- There is no assignment cap in the MVP.

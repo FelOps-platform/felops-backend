@@ -74,8 +74,9 @@ quick answer, skip the full map.
 
 - **Keep one owner per fact.** Link to the API outline, schema, feature page, or contract instead of
   copying them.
-- **Use stable keys.** `tool_key`, `integration_key`, and `channel_key` are stable identifiers. The
-  frontend owns localized labels and descriptions.
+- **Use stable keys.** `tool_key` and `integration_key` are stable code identifiers. Channel
+  instances use a numeric `channel_id` and a code-defined `channel_type`. The frontend owns
+  localized labels and descriptions.
 - **Keep LLM-facing text separate.** Action descriptions sent to the AI Service are not user-facing
   display text.
 - **Model state explicitly.** Add Mermaid state diagrams where transitions and failure paths matter.

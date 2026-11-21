@@ -1,5 +1,7 @@
 # Overview
 
+> **Status:** Planned contract. No integration runtime is implemented in this repository unless source code proves otherwise.
+
 **Call direction**
 
 - **Backend API → AI Service:** incoming turn, approval decision, knowledge source add / retry / delete, catalog push, conversation mode.
@@ -65,7 +67,8 @@ Idempotency-Key: <key>
 ```jsonc
 {
   "agent_id": 12,
-  "channel": "whatsapp | widget | hosted",
+  "channel_id": 42,
+  "channel_type": "whatsapp",
   "content": "Where is my order?",
   "agent_config": {
     "catalog_version": 5,
@@ -85,7 +88,8 @@ Idempotency-Key: <key>
 }
 ```
 
-- `tools` is the agent's active, granted tool selection from connected integrations, paired with user-configured `requires_approval` flags. Descriptions, schemas, and definitions come from the catalog ([§7](#7-catalog)).
+- `channel_id` is the workspace channel instance. `channel_type` is the code-defined transport type.
+- `tools` is the agent's active, granted tool selection from connected integrations, paired with `requires_approval` flags resolved by the Backend from workspace policy. Descriptions, schemas, and definitions come from the catalog ([§7](#7-catalog)).
 - `knowledge_source_ids` lists the workspace sources selected for the agent. Retrieval is limited to these IDs.
 - `agent_config` applies to this turn only; the AI Service retains a copy for the duration of the run, and edits take effect on the next message.
 - The AI Service narrows `tools` to those allowed for the agent's sub-agent. V1 has one sub-agent, `customer_support`, so `sub_agent_id` is omitted.
@@ -231,7 +235,6 @@ When a tool requires approval, the AI Service generates `approval_id` as a UUID 
     "tool_key": "quickbooks__send_invoice",
     "integration_key": "quickbooks",
     "params": { "customerId": "cus_123", "amount": 250 },
-    "params_hash": "sha256:7b1e...",
     "effect_summary": "Invoice of 250 will be sent to cus_123."
   }
 }
@@ -251,7 +254,7 @@ Authorization: Bearer <BACKEND_IDENTITY_TOKEN>
 ```jsonc
 {
   "decision": "approved | rejected",
-  "approver_id": "mem_77",
+  "approver_id": 77,
   "note": "optional",
   "agent_config": {
     /* current agent config, same shape as §3.1 */
@@ -259,13 +262,15 @@ Authorization: Bearer <BACKEND_IDENTITY_TOKEN>
 }
 ```
 
+`approver_id` is the numeric Backend user ID that made the decision.
+
 **Response `202`:**
 
 ```jsonc
 { "job_id": "c41d8a07-..." }
 ```
 
-- **Approved:** The AI Service resumes from its checkpoint, validates `params_hash`, checks that the tool is still present in `agent_config.tools`, and verifies catalog compatibility against the current catalog ([§12](#12-catalog-synchronization--versioning-strategy)). If valid, it executes the tool via `tools/call` ([§4](#4-tool-calls)) and emits the final response.
+- **Approved:** The AI Service resumes from its checkpoint, validates the saved arguments, checks that the tool is still present in `agent_config.tools`, and verifies catalog compatibility against the current catalog ([§12](#12-catalog-synchronization--versioning-strategy)). If valid, it executes the tool via `tools/call` ([§4](#4-tool-calls)) and emits the final response.
 - **Rejected:** The AI Service skips execution and informs the user that the action was stopped.
 - **Unavailable or incompatible tool:** If the tool was deprecated, removed from `agent_config`, or its schema/side-effect changed incompatibly while pending, the AI Service skips execution and emits `message.final` stating the tool is no longer available.
 
@@ -281,7 +286,7 @@ All knowledge sources belong to the workspace. Agents select from this workspace
   - `url`: hash of the normalized URL string (lowercased, trimmed, with tracking parameters such as `utm_*` stripped).
   - Files (`txt`, `pdf`, `docx`): cryptographic content hash, such as SHA-256.
 - **Source Metadata:** User-provided `name` and `description` are stored on the workspace source.
-- **Deduplication:** If identical content already exists in the workspace, the Backend reuses the source without re-ingestion.
+- **Deduplication:** If identical content already exists in the workspace, the Backend rejects the request with `409 DUPLICATE_SOURCE` and does not ingest again or overwrite the existing source.
 - **Assignment:** Agents are linked to selected source IDs. Assignment does not copy or re-ingest the source.
 - **Deletion:** The Backend purges a source from Qdrant before removing its agent assignments and metadata. A purge failure keeps the source for retry.
 
@@ -372,7 +377,7 @@ The system catalog is global and owned by the Backend. The AI Service maintains 
 - **Push (CI/CD):** On Backend deployment, CI/CD pushes the catalog via `PUT /catalog` with `{ "catalog_version": 5, "tools": [...] }` using retries until acknowledged. The AI Service applies the update if `catalog_version` is newer and returns `{ "catalog_version": 5, "applied": true }`.
 - **Pull (Startup & On-Demand):** The AI Service calls `GET /internal/catalog` on the Backend (`?full=true` returns tool definitions) at startup and whenever an incoming request carries a newer `agent_config.catalog_version`.
 - **Tool fields:** `tool_key`, `integration_key`, `description`, input schema, side-effect class (`read-only` or `side-effecting`), `result_summary` and `effect_summary` templates, `version`, `deprecated`.
-- The catalog contains no approval flags; approval is configured per agent and tool in `agent_config`.
+- The catalog contains no approval flags; approval flags are resolved from workspace policy and carried per agent and tool in `agent_config`.
 - `tool_key` is immutable and never reused. Deprecated or disconnected tools are omitted from `agent_config.tools`.
 
 ## 8. Other AI Service endpoints
@@ -418,7 +423,7 @@ Webhooks to `POST /webhooks/ai` deliver `message.final`, `job.completed`, `appro
 | `plan.created` | `steps[]` |
 | `retrieval.completed` | `sources[]`, `chunk_count` |
 | `config.warning` | `code` (`unknown_tool` \| `tool_removed`), `tool_keys[]` |
-| `approval.required` | `approval_id`, `tool_key`, `integration_key`, `params`, `params_hash`, `effect_summary` |
+| `approval.required` | `approval_id`, `tool_key`, `integration_key`, `params`, `effect_summary` |
 | `approval.resolved` | `approval_id`, `decision`, `approver_id` |
 | `handoff.requested` | `reason` |
 | `message.delta` | `text` |

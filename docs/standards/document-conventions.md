@@ -22,13 +22,12 @@ Each workflow uses:
 
 | Field | Required | Purpose |
 |---|---|---|
-| `Where` | Yes | Screen or system location. |
-| `Endpoint` / `Endpoints` | API-backed only | Client or Backend internal endpoint. |
-| `AI handoff` | When applicable | AI Service endpoint called by the Backend. |
-| `Flow` | Yes | Numbered sequence. |
-| `Outcome` | Yes | State left behind and what the caller sees. |
+| `Where` | Yes | System area, not a specific control. |
+| `Flow` | Yes | Numbered sequence, including each endpoint call where it happens. |
 | `Errors` | When applicable | Workflow-specific errors only. |
 | `Rules` | Optional | Cross-cutting behavior. |
+
+Put client, Backend, and AI Service endpoint calls in the flow step that invokes them. Do not add separate `Endpoint` or `AI handoff` fields. Do not add a separate `Outcome` field; put a meaningful final state in the last flow step when it matters. Describe behavior between the frontend, Backend, and AI Service. Do not name buttons or other specific controls; use the component as the actor.
 
 Use one `###` heading per workflow. Prefer 4 to 8 workflows per feature page. A workflow may describe a read, a mutation, or a background handoff; its behavior is clear from the heading and content.
 

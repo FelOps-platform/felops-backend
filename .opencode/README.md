@@ -100,5 +100,5 @@ implementer only; the read-only roles cannot call them.
 - Make a code change without touching docs; the next model request should carry a "Docs reminder"
   system line, once per session. Repeat after committing the change.
 - `bash bin/check-opencode-config.sh` covers the same ground without credentials, and the
-  `OpenCode config` workflow runs it on pull requests. The existing `bin/check-agent-workflow.sh` is
-  unchanged, so the Claude/Cursor checks are unaffected.
+  `OpenCode config` workflow runs it on pull requests. `bin/check-agent-workflow.sh` covers adapter
+  parity and local links, and also runs `bin/check-backend-docs.sh`.

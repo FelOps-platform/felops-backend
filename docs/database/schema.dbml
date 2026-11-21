@@ -1,3 +1,4 @@
+// Tables
 Table users {
   id int [pk, increment]
   name varchar(50) [not null]
@@ -16,7 +17,7 @@ Table workspaces {
 
 Table agents {
   id int [pk, increment]
-  workspace_id int [not null, ref: > workspaces.id]
+  workspace_id int [not null]
   name varchar(50) [not null]
   instructions varchar(8000) [not null]
   created_at datetime [default: `now()`]
@@ -29,34 +30,33 @@ Table agents {
 
 Table agents_actions {
   agent_id int [not null]
-  tool_key varchar(160) [not null]
+  tool_key varchar(100) [not null]
   requires_approval bool [not null, default: false]
 
   indexes {
     (agent_id, tool_key) [pk]
-    (tool_key) [name: 'idx_agents_actions_tool']
   }
 }
 
+// If the setting record for a workspace and tool key does not exist, the default is enabled.
 Table workspace_action_settings {
-  workspace_id int [not null, ref: > workspaces.id]
-  tool_key varchar(160) [not null]
+  workspace_id int [not null]
+  tool_key varchar(100) [not null]
   enabled bool [not null, default: true]
-  updated_by int [ref: >? users.id]
+  updated_by int [ref: > users.id]
   created_at datetime [default: `now()`]
   updated_at datetime [default: `now()`]
 
   indexes {
     (workspace_id, tool_key) [pk]
-    (tool_key) [name: 'idx_workspace_action_tool']
   }
 }
 
 Table workspaces_channels {
   id int [pk, increment]
   workspace_id int [not null]
-  channel_key channel_type [not null]
-  name varchar(100) [not null] // workspace channel instance name
+  channel_type channel_type [not null]
+  name varchar(100) [not null]
   agent_id int // single agent per channel. nullable, a channel may be created without an agent assigned yet or the agent may be removed later.
   config jsonb [not null, default: '{}'] // channel-specific configuration (e.g., WhatsApp phone number)
   created_at datetime [default: `now()`]
@@ -69,7 +69,7 @@ Table workspaces_channels {
 }
 
 Table workspaces_integrations {
-  workspace_id int [not null, ref: > workspaces.id]
+  workspace_id int [not null]
   integration_key varchar(50) [not null] // stable key from the code registry
   external_account_id varchar(255) [not null] // provider account identifier
   external_account_name varchar(255) // provider account display name
@@ -89,7 +89,7 @@ Table workspaces_integrations {
 
 Table oauth_states {
   state_hash varchar(64) [pk] // hashed one-time state, not the raw value
-  workspace_id int [not null, ref: > workspaces.id]
+  workspace_id int [not null]
   integration_key varchar(50) [not null]
   initiated_by int [not null, ref: > users.id]
   redirect_uri varchar(2048) [not null] // backend callback URL
@@ -104,34 +104,16 @@ Table oauth_states {
   }
 }
 
-Table oauth_pending_connections {
-  id varchar(36) [pk]
-  workspace_id int [not null, ref: > workspaces.id]
-  integration_key varchar(50) [not null]
-  initiated_by int [not null, ref: > users.id]
-  encrypted_credentials text [not null]
-  accounts jsonb [not null] // accessible provider accounts for selection
-  expires_at datetime [not null]
-  consumed_at datetime
-  created_at datetime [default: `now()`]
-
-  indexes {
-    (workspace_id, integration_key) [name: 'idx_oauth_pending_workspace']
-    (expires_at) [name: 'idx_oauth_pending_expiry']
-  }
-}
-
 // Basic shape; the conversation lane owns the full model
 Table conversations {
   id int [pk, increment]
-  workspace_id int [not null, ref: > workspaces.id]
+  workspace_id int [not null]
   agent_id int [not null]
   channel_id int [not null]
   created_at datetime [default: `now()`]
 
   indexes {
     (workspace_id, created_at) [name: 'idx_conversations_workspace_created']
-    (agent_id, created_at) [name: 'idx_conversations_agent_created']
   }
 }
 
@@ -143,8 +125,7 @@ Table messages {
   sender_type message_sender_type [not null] // user | agent
   content text [not null]
   created_at datetime [default: `now()`]
-  // we already know the agent id from the conversation, so we don't need to store it here.
-  // we don't store the user id here because we don't have a users table for the end-users of the agents.
+  // we don't store the user id here because we don't have a users table for the end-users of the channels.
 
   indexes {
     (conversation_id, created_at) [name: 'idx_messages_conversation_created']
@@ -154,11 +135,11 @@ Table messages {
 // Executions
 Table executions {
   id int [pk, increment]
-  workspace_id int [not null, ref: > workspaces.id]
+  workspace_id int [not null]
   agent_id int [not null]
   conversation_id int [not null]
   integration_key varchar(50) [not null] // stable integration key
-  tool_key varchar(160) [not null] // stable built-in tool key
+  tool_key varchar(100) [not null] // stable built-in tool key
   tool_arguments jsonb [not null, default: '{}']
   idempotency_key varchar(255) [not null]
   status execution_status [not null, default: 'running']
@@ -178,17 +159,16 @@ Table executions {
 
 Table approvals {
   id varchar(36) [pk] // AI-generated UUID
-  workspace_id int [not null, ref: > workspaces.id]
+  workspace_id int [not null]
   agent_id int [not null]
   conversation_id int [not null]
   job_id varchar(64) [not null]
-  tool_key varchar(160) [not null]
+  tool_key varchar(100) [not null]
   integration_key varchar(50) [not null]
   params jsonb [not null, default: '{}']
-  params_hash varchar(255) [not null]
   effect_summary varchar(1000) [not null]
   status approval_status [not null, default: 'pending']
-  decided_by int [ref: >? users.id]
+  decided_by int [ref: > users.id]
   note varchar(1000)
   requested_at datetime [default: `now()`]
   decided_at datetime
@@ -213,7 +193,7 @@ Table knowledge_sources {
   storage_content_type varchar(100)
   status knowledge_status [not null, default: 'processing']
   error_message varchar(1000)
-  created_by int [ref: >? users.id]
+  created_by int [ref: > users.id]
   created_at datetime [default: `now()`]
   updated_at datetime [default: `now()`]
 
@@ -235,10 +215,17 @@ Table agents_knowledge_sources {
   }
 }
 
-// Cascading relationships
+// Relationships
+Ref: agents.workspace_id > workspaces.id [delete: cascade]
+Ref: workspace_action_settings.workspace_id > workspaces.id [delete: cascade]
+Ref: workspaces_integrations.workspace_id > workspaces.id [delete: cascade]
+Ref: oauth_states.workspace_id > workspaces.id [delete: cascade]
+Ref: conversations.workspace_id > workspaces.id [delete: cascade]
+Ref: executions.workspace_id > workspaces.id [delete: cascade]
+Ref: approvals.workspace_id > workspaces.id [delete: cascade]
 Ref: agents_actions.agent_id > agents.id [delete: cascade]
 Ref: workspaces_channels.workspace_id > workspaces.id [delete: cascade]
-Ref: workspaces_channels.agent_id >? agents.id [delete: set null]
+Ref: workspaces_channels.agent_id > agents.id [delete: set null]
 Ref: conversations.agent_id > agents.id [delete: cascade]
 Ref: conversations.channel_id > workspaces_channels.id [delete: cascade]
 Ref: executions.agent_id > agents.id [delete: cascade]
@@ -251,8 +238,6 @@ Ref: agents_knowledge_sources.source_id > knowledge_sources.id [delete: cascade]
 Ref: messages.conversation_id > conversations.id [delete: cascade]
 
 // Enums
-
-// HTTP method names use their conventional uppercase form.
 Enum message_sender_type {
   user
   agent

@@ -18,7 +18,7 @@ Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descrip
 | API | Express app with JSON middleware and one health route | [api/src/app.ts](../api/src/app.ts), [api/src/server.ts](../api/src/server.ts) |
 | Runtime config | Infisical Universal Auth retrieval followed by Zod validation | [api/src/config/env.ts](../api/src/config/env.ts), [api/src/integrations/infisical/fetch-secrets.ts](../api/src/integrations/infisical/fetch-secrets.ts) |
 | Database | PostgreSQL/Drizzle connection module and users schema; health route has no database flow | [api/src/config/db.ts](../api/src/config/db.ts), [api/src/database/schema.ts](../api/src/database/schema.ts) |
-| Tool execution | Backend-owned planned workflow; no runtime yet | [Architecture](architecture.md#tool-execution), [AI Service contract](ai-service-integration/ai-service-contract.md), [Actions](features/actions.md) |
+| Tool execution | Backend-owned planned workflow; no runtime yet | [Architecture](architecture.md#components), [AI Service contract](ai-service-integration/ai-service-contract.md), [Actions](features/actions.md) |
 | AI | Separate felops-ai project per repository boundary; async turns, approvals, and ingestion | [Architecture](architecture.md) |
 | Product workflows | Integrations, actions, knowledge, agents, approvals, and channels are documented, not implemented in the API | [Features](features/actions.md) |
 

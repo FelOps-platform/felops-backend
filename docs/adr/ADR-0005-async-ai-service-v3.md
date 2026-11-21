@@ -32,7 +32,7 @@ ADR-0004 remains valid for Backend-owned tool definitions and execution, but its
 - The Backend no longer executes an approved tool directly from the decision endpoint; execution enters through `tools/call`.
 - Approvals and executions are separate records.
 - Async jobs require SSE/webhook projections and durable AI jobs.
-- The schema removes `agents_channels`, adds workspace channel records, approval UUIDs/hashes, catalog metadata, and workspace source assignments.
+- The schema removes `agents_channels`, adds workspace channel records, approval UUIDs, catalog metadata, and workspace source assignments.
 - Agent creation has four steps (Basic information, Assign Actions, Configure Knowledge, Review & save); channel setup is separate.
 
 ## References

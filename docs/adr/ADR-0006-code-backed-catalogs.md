@@ -19,7 +19,7 @@ Workspace state is different. Connections, encrypted credentials, action grants,
 - Frontend localization owns static display names, descriptions, and category labels. The Backend does not store or send them. Frontend code maps integration keys, action tool keys, channel keys, and category keys to localized text.
 - The database stores workspace state only: integration connections and encrypted credentials, agent action grants by tool key, executions, workspace channel instances, agent assignments, and channel config.
 - Agent grants reference stable tool keys. Executions store the integration key and tool key snapshots.
-- The catalog version comes from the registry build or content hash. CI/CD serializes the code registry and pushes it to the AI Service.
+- The catalog version is a monotonically increasing integer build number from the registry build. CI/CD serializes the code registry and pushes it to the AI Service.
 - Global catalog changes require a deployment. If non-deploy overrides become necessary, add a small override table instead of copying full definitions into the database.
 - Custom actions remain deferred. If added, they use a separate database-backed definition table and a generic HTTP handler.
 
