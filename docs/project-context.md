@@ -20,7 +20,7 @@ Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descrip
 | Database | PostgreSQL/Drizzle connection module and users schema; health route has no database flow | [api/src/config/db.ts](../api/src/config/db.ts), [api/src/database/schema.ts](../api/src/database/schema.ts) |
 | Tool execution | Backend-owned planned workflow; no runtime yet | [Architecture](architecture.md#components), [AI Service contract](ai-service-integration/ai-service-contract.md), [Actions](features/actions.md) |
 | AI | Separate felops-ai project per repository boundary; async turns, approvals, and ingestion | [Architecture](architecture.md) |
-| Product workflows | Integrations, actions, knowledge, agents, approvals, and channels are documented, not implemented in the API | [Features](features/actions.md) |
+| Product workflows | Authentication, integrations, actions, knowledge, agents, approvals, and channels are documented, not implemented in the API | [Authentication](features/auth.md), [Actions](features/actions.md) |
 
 ## Constraints
 

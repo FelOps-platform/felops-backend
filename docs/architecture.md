@@ -29,6 +29,7 @@ flowchart LR
 | Component | Responsibility | Documentation |
 | --- | --- | --- |
 | Backend API | Client-facing API, workspace state, and tool execution. | [API design](api/api-design-outline.md) |
+| Authentication | Account lifecycle, sessions, email verification, password reset, and auth codes. | [Authentication](features/auth.md) |
 | AI Service | Orchestration, checkpoints, retrieval, ingestion, and events. | [AI Service contract](ai-service-integration/ai-service-contract.md) |
 | Agents | Instructions, action grants, knowledge assignments, and approval requirements. | [Agents](features/agents.md) |
 | Integrations and OAuth | Provider definitions, workspace connections, and connection state. | [Integrations](features/integrations.md) |

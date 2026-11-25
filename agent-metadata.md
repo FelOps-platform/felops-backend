@@ -2,7 +2,7 @@
 
 Verified technical and agent state. Paths are repository-relative. Product architecture in docs is labeled planned unless code implements it.
 
-Last inspected: 2026-11-21 (docs use a flat `docs/` tree with root and docs README indexes. Feature pages carry planned status, approvals has a state diagram, architecture is a system overview and backend component index, integrations owns the user-facing OAuth lifecycle, ADR-0007 owns OAuth mechanics, actions owns tool-execution mechanics, and knowledge is selected from the workspace library only. No application code or runtime behavior changed in this design pass. Earlier onboarding checks remain recorded below.)
+Last inspected: 2026-11-25 (docs use a flat `docs/` tree with root and docs README indexes. Feature pages carry planned status, approvals has a state diagram, architecture is a system overview and backend component index, integrations owns the user-facing OAuth lifecycle, ADR-0007 owns OAuth mechanics, actions owns tool-execution mechanics, and knowledge is selected from the workspace library only. Authentication is documented as a planned design in `docs/features/auth.md`. No application code or runtime behavior changed in this design pass. Earlier onboarding checks remain recorded below.)
 
 ## 1. Project identity
 
@@ -64,6 +64,7 @@ TypeScript tooling versions are intentionally split between TypeScript 7 for com
 | [api/package.json](api/package.json) | API scripts and dependencies |
 | [docs/architecture.md](docs/architecture.md) | Proposed system architecture |
 | [docs/api/api-design-outline.md](docs/api/api-design-outline.md) | API organization, shared errors, and OpenAPI generation approach |
+| [docs/features/auth.md](docs/features/auth.md) | Planned authentication workflows, sessions, and auth decisions |
 
 ## 7. Configuration and secrets
 
@@ -116,6 +117,7 @@ Coding-agent host configuration: each host has its own surface. Claude Code uses
 - npm test --prefix api failed at the import-time Infisical credential guard with credentials cleared, before test collection. No tests were collected; the test suite is not green. It was not re-run during onboarding, so this recorded limitation stands.
 - Root workflow check passed on 2026-11-21: adapter parity, helper syntax, local links, and configured hook launches.
 - OpenCode config check passed on 2026-11-21: agent frontmatter, secret-file rules, approval rules, command parity, and the docs-reminder plugin in a temporary repository.
-- Backend documentation consistency check passed on 2026-11-21 after finalizing the backend component index, database relationships, workspace assignment flows, and OAuth/tool-execution ownership. The DBML schema also parsed with `@dbml/core` 12.1.0 (14 tables, 26 relationships). API lint, typecheck, and build passed on 2026-11-21; no application source changed.
+- Backend documentation consistency check passed on 2026-11-21 after finalizing the backend component index, database relationships, workspace assignment flows, and OAuth/tool-execution ownership. API lint, typecheck, and build passed on 2026-11-21; no application source changed.
+- Backend documentation consistency check passed on 2026-11-25 after finalizing the planned authentication design. The DBML schema defines 16 tables and 28 relationships (`@dbml/core` 12.1.0 parsed the 16-table/28-relationship structure prior to adding `[not null]` on `users.is_verified`). No application source changed.
 - CI covers only the two agent-config checks: `.github/workflows/agent-workflow.yml` and `.github/workflows/opencode-config.yml` run on pull requests and pushes to `main`. No lint, typecheck, build, or test workflow exists.
 - Docs PR #1 targets main and was open when checked on 2026-10-22. Treat its proposed docs as unmerged, non-implementation evidence. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)

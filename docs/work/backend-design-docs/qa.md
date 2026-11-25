@@ -2,6 +2,7 @@
 
 Status: Done
 Date: 2026-11-21
+Updated: 2026-11-25
 Brief: [brief.md](brief.md)
 Plan: [plan.md](plan.md)
 
@@ -42,8 +43,23 @@ cascade declarations, and work-record links. The remaining minor findings
 (approval wording, ADR index coverage, and the verification state in this file)
 were resolved before the final commit. No push or pull request was performed.
 
+## Authentication addendum verification
+
+Date: 2026-11-25
+
+- `bash bin/check-backend-docs.sh` (Git Bash): passed.
+- `bash bin/check-agent-workflow.sh` (Git Bash): passed.
+- `bash bin/check-opencode-config.sh` (Git Bash): passed.
+- `git diff --check`: clean.
+- Schema: `docs/database/schema.dbml` defines 16 tables and 28 relationships (`@dbml/core` 12.1.0 parsed the 16-table/28-relationship structure prior to adding `[not null]` on `users.is_verified`).
+- Fresh review: review completed and findings resolved.
+- API tests, lint, typecheck, and build were not run; docs-only change and tests require Infisical credentials.
+- No push or PR update was performed.
+
 ## Test limitation
 
 API tests were not run. This change contains no application code, and the suite
 starts by loading Infisical bootstrap credentials. No credentials were invented
-or requested. API lint, typecheck, and build passed against the unchanged source.
+or requested. API lint, typecheck, and build passed against the unchanged source
+for the original documentation pass; they were not re-run for the auth addendum
+because no application source changed.

@@ -6,7 +6,8 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 
 | Group | Tables | Notes |
 | --- | --- | --- |
-| Identity and workspace | `users`, `workspaces` | Workspaces have an owner. Membership and roles are not modeled in the current DBML. |
+| Identity and authentication | `users`, `sessions`, `auth_codes` | Users own sessions and auth codes. Refresh tokens and codes are stored as hashes. |
+| Workspace | `workspaces` | Workspaces have an owner. Membership and roles are not modeled in the current DBML. |
 | Agents | `agents`, `agents_actions`, `agents_knowledge_sources` | Agents own action grants and source assignments. |
 | Workspace configuration | `workspace_action_settings`, `workspaces_integrations`, `oauth_states`, `workspaces_channels` | Workspace-scoped settings, OAuth state, and channel instances. |
 | Conversations and executions | `conversations`, `messages`, `executions`, `approvals` | Conversations own messages. Executions and approvals reference a conversation. |
@@ -16,6 +17,8 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 
 | Parent | Child | Notes |
 | --- | --- | --- |
+| `users` | `sessions` | A user has many refresh sessions. |
+| `users` | `auth_codes` | A user has verification and password-reset codes. |
 | `users` | `workspaces` | A user owns workspaces. |
 | `workspaces` | `agents` | Each agent belongs to one workspace. |
 | `workspaces` | `workspace_action_settings` | Workspace-level action overrides. |
@@ -45,6 +48,16 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 - `tool_key` and `integration_key` are stable values from code, not foreign keys to definition tables.
 - `channel_id` is a normal database identity. `channel_type` is the code-defined enum value.
 - Action, integration, and channel type definitions live in code. The database stores workspace state and grants.
+
+### Authentication and sessions
+
+- Passwords are hashed with Argon2id; plaintext passwords are never stored or logged.
+- Refresh tokens and auth codes are stored as hashes, never plaintext.
+- The refresh cookie carries a session identifier and secret; only the secret hash is stored, so a stale token still identifies its session.
+- Sessions expire and can be revoked. Sign-out and refresh-token mismatch outside a brief concurrent-refresh grace window revoke one session; password reset revokes all user sessions.
+- Auth codes are single-use, expiring, and attempt-limited.
+- Email is normalized to lowercase; the unique index enforces one account per email, and `users.is_verified` is `not null`.
+- Workspace membership and roles are out of scope. `workspaces.owner_id` remains the only workspace-to-user relationship.
 
 ### Workspace scoping
 
@@ -91,7 +104,9 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 
 ### Cascade behavior
 
+- User deletion cascades `sessions` and `auth_codes`.
 - Workspace deletion cascades workspace-owned rows.
 - Channel deletion cascades its conversations.
 - Conversation deletion cascades messages, executions, and approvals.
 - Agent deletion clears channel assignments and cascades agent-owned grants and assignments.
+- User deletion with owned workspaces is a future decision; the current schema does not define that behavior.

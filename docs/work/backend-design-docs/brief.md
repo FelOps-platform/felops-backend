@@ -2,6 +2,7 @@
 
 Status: Done
 Created: 2026-11-21
+Updated: 2026-11-25
 Related decisions: [ADR-0007](../../adr/ADR-0007-oauth-provider-integrations.md), [ADR-0008](../../adr/ADR-0008-multiple-channel-instances.md), [ADR-0009](../../adr/ADR-0009-workspace-action-availability.md), [ADR-0010](../../adr/ADR-0010-workspace-only-knowledge.md)
 
 ## Problem and context
@@ -62,3 +63,12 @@ The repository still implements only the health endpoint and configuration scaff
 - Large design sets can duplicate facts; the consistency check covers the main known collisions.
 - Database changes are design-only and do not create migrations.
 - The API test suite needs Infisical bootstrap credentials, so this docs-only change does not run it.
+
+## Authentication addendum
+
+Added 2026-11-25. Authentication is documented in [auth.md](../../features/auth.md); the API outline and schema match it. No ADR was added.
+
+- In scope: create account, verify email, sign in, refresh, sign out, and password reset.
+- Out of scope: workspace selection and membership, invitations, roles, MFA/SSO, and runtime implementation. Non-members receive `404 NOT_FOUND`.
+- Screens: Sign in, Create Account, Verified!, Set a new password, Reset Password, and verification failure are covered. Check-email, code-entry, reset-success, and error states are still missing.
+- Verified: docs, workflow, and OpenCode checks passed; schema defines 16 tables and 28 relationships; review findings resolved.

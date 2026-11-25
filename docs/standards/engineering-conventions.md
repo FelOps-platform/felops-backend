@@ -44,9 +44,17 @@ status codes, and error details. Follow them rather than copying them.
 - Encrypt secrets at rest; never store credentials in plaintext.
 - Provider credentials never leave the Backend. Tokens never appear in frontend URLs, browser
   storage, or logs.
+- Hash passwords with Argon2id; never store or log plaintext credentials.
+- Keep access tokens short-lived; store refresh tokens and auth codes as hashes; rotate refresh
+  tokens; revoke sessions on sign-out and password reset.
+- Use generic responses for sign-up, password reset, and resend to avoid enumeration; rate-limit
+  these flows.
+- Workspace resources for non-members return `404 NOT_FOUND`; `403 FORBIDDEN` is for role
+  restrictions when membership is modeled.
 - The AI Service calls the Backend API; it does not write PostgreSQL directly.
 
-The [architecture](../architecture.md) and
+The [authentication design](../features/auth.md) owns the auth workflows and token rules. The
+[architecture](../architecture.md) and
 [AI Service contract](../ai-service-integration/ai-service-contract.md) own the service
 boundaries.
 

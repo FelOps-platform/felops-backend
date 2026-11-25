@@ -4,14 +4,14 @@ This outline keeps only API organization, shared formatting, and common error ru
 
 ## 1. Surfaces
 
-| Surface          | Base             | Auth                   | Notes                                         |
-| ---------------- | ---------------- | ---------------------- | --------------------------------------------- |
-| Client API       | `/api/v1`        | User JWT               | Workspace membership required.                |
-| Backend internal | `/internal`      | AI identity token      | Called by the AI Service.                     |
-| AI Service       | Separate service | Backend identity token | Defined by the AI Service contract.           |
-| AI webhooks      | `/webhooks/ai`   | AI identity token      | Message, approval, ingestion, and job events. |
+| Surface          | Base             | Auth                               | Notes                                         |
+| ---------------- | ---------------- | ---------------------------------- | --------------------------------------------- |
+| Client API       | `/api/v1`        | User access token + refresh cookie | Workspace routes require membership.          |
+| Backend internal | `/internal`      | AI identity token                  | Called by the AI Service.                     |
+| AI Service       | Separate service | Backend identity token             | Defined by the AI Service contract.           |
+| AI webhooks      | `/webhooks/ai`   | AI identity token                  | Message, approval, ingestion, and job events. |
 
-`GET /api/v1/health` is public. The OAuth callback is public but bound to a one-time state record. Workspace routes require a workspace-scoped user token; auth routes follow their own flow.
+`GET /api/v1/health` is public. The OAuth callback is public but bound to a one-time state record. Workspace routes require a user access token; workspace access is checked per request. Auth routes follow their own flow. Workspace access rules are owned by the future workspace design; non-members receive `404 NOT_FOUND`.
 
 ## 2. Resource groups
 
@@ -22,7 +22,7 @@ Definitions for integrations, built-in actions, and channel types live in code. 
 | Group | Main resources | Representative endpoints |
 | --- | --- | --- |
 | Health | service health | `GET /api/v1/health` |
-| Auth / workspace | user, workspace, member | auth and workspace settings |
+| Auth | user | `POST /api/v1/auth/sign-up`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/resend-verification`, `POST /api/v1/auth/sign-in`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/sign-out`, `POST /api/v1/auth/password-reset/request`, `POST /api/v1/auth/password-reset/confirm` |
 | Integrations | integration, connection, OAuth flow | `GET .../integrations/{integration_key}`, `POST .../oauth/start`, `GET /api/v1/integrations/oauth/callback` |
 | Actions | action, catalog, workspace setting | `GET .../actions`, `GET .../actions/{tool_key}`, `PUT .../actions/{tool_key}/availability`, agent grants |
 | Knowledge | source, ingestion | `GET/POST /workspaces/{workspace_id}/knowledge`, `GET/DELETE .../knowledge/{source_id}`, `POST .../knowledge/{source_id}/retry` |
@@ -34,13 +34,30 @@ Definitions for integrations, built-in actions, and channel types live in code. 
 
 Client conversation and message APIs are outside this outline; conversation IDs still appear in execution and approval records.
 
+### Auth rules
+
+- Sign-up, verify-email, resend-verification, sign-in, password-reset request, and password-reset confirm are public. Refresh and sign-out use the refresh cookie.
+- The access token travels in `Authorization: Bearer`. The refresh token is an HttpOnly, Secure, SameSite=Strict cookie scoped to `/api/v1/auth`.
+- The access token appears only in sign-in, verification, and refresh responses. Refresh tokens and auth codes never appear in JSON responses, URLs, logs, or browser storage. Refresh tokens are hashed at rest and rotated on every refresh.
+- The refresh token embeds a session identifier; only the secret hash is stored, so a stale token outside a brief concurrent-refresh grace window revokes its session.
+- Sign-up overwrites existing unverified accounts, leaves verified accounts unchanged with an account-exists email, and returns a generic `202` along with resend and password-reset request to avoid account enumeration; cooldown and rate-limit rejections return `429 RATE_LIMITED`.
+- Resend and reset cooldowns are keyed to the normalized email and client IP and apply to every request, including emails without an account. Unknown emails follow the same `202`/`429` sequence and receive no email.
+- Sign-in returns a generic `401 INVALID_CREDENTIALS`. Correct credentials for an unverified email return `403 EMAIL_NOT_VERIFIED`.
+- Refresh and sign-out use the refresh cookie. A refresh-token mismatch outside the grace window revokes the session and returns `401 SESSION_EXPIRED`. Sign-out clears the cookie and returns `204` idempotently.
+- Password-reset confirmation validates password strength first, sets `is_verified = true`, and revokes all sessions for the user. Revocation stops refresh immediately; an access token already issued remains valid until it expires.
+- Passwords use Argon2id and require at least 12 characters.
+- Verification and reset codes are 6 digits, hashed with HMAC-SHA-256 and a server pepper, expire after 10 minutes, allow 5 attempts, are single-use, and have a 60-second resend cooldown; expiry errors fire only after a matching code hash.
+- Rate limits apply to sign-up, sign-in, resend, and password reset.
+- Auth-specific errors: `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `INVALID_VERIFICATION_CODE`, `VERIFICATION_CODE_EXPIRED`, `INVALID_RESET_CODE`, `RESET_CODE_EXPIRED`, `WEAK_PASSWORD`, `SESSION_EXPIRED`, `RATE_LIMITED`.
+- Workspace resources for non-members return `404 NOT_FOUND`. `403 FORBIDDEN` is reserved for future role restrictions when membership is modeled.
+
 ## 3. Formatting
 
 - Client API JSON keys are camelCase. Paths, query parameters, tables, columns, and enums are snake_case.
 - AI Service payloads follow the contract's field casing (`agent_config` and `tool_key` in turns, `toolKey` and `integrationKey` in tool calls). Do not apply the client casing rule to service payloads.
 - Client responses use `{ "data": ... }`. Paginated lists add `meta: { page, limit, total, totalPages }`.
 - Pagination defaults: `page=1`, `limit=20`, maximum `100`.
-- `201` returns the created resource, `202` returns the accepted job or source identifier, and `204` has no body.
+- `201` returns the created resource, `202` returns the accepted job or source identifier when one exists, and `204` has no body. Enumeration-safe auth responses use an empty `202`.
 - Errors use:
   ```jsonc
   {
@@ -73,8 +90,8 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 | Status | Code                                    | Use                                                      |
 | ------ | --------------------------------------- | -------------------------------------------------------- |
 | `400`  | `MALFORMED_REQUEST`                     | JSON body cannot be parsed.                              |
-| `401`  | `UNAUTHENTICATED`                       | Missing or invalid credential.                           |
-| `403`  | `FORBIDDEN`                             | Authenticated without required access.                   |
+| `401`  | `UNAUTHENTICATED` or auth-specific      | Missing or invalid credential.                           |
+| `403`  | `FORBIDDEN` or auth-specific            | Authenticated without required access, or auth-specific account state. |
 | `404`  | `NOT_FOUND`                             | Workspace or resource missing.                           |
 | `409`  | resource-specific                       | Duplicate, already decided, or invalid state transition. |
 | `413`  | `PAYLOAD_TOO_LARGE`                     | Upload or response cap exceeded.                         |
@@ -84,7 +101,9 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 | `502`  | `UPSTREAM_INVALID_RESPONSE`             | Upstream returned an unusable response.                  |
 | `503`  | `UPSTREAM_UNAVAILABLE`                  | Storage, AI, or other external Service unavailable.      |
 
-`details.resource` values: `workspace`, `integration`, `connection`, `action`, `agent`, `knowledge_source`, `channel`, `execution`, `approval`, `conversation`.
+Auth uses `401 INVALID_CREDENTIALS`, `401 SESSION_EXPIRED`, and `403 EMAIL_NOT_VERIFIED` as resource-specific 401/403 codes.
+
+`details.resource` values: `user`, `workspace`, `integration`, `connection`, `action`, `agent`, `knowledge_source`, `channel`, `execution`, `approval`, `conversation`.
 
 ## 5. Channel rules
 
@@ -155,7 +174,8 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 When generating the detailed specs after implementation:
 
 - Reuse `Error`, `ValidationDetail`, `NotFoundDetail`, `UpstreamDetail`, `Meta`, and pagination envelopes.
-- Reuse security schemes: user bearer JWT, `AI_IDENTITY_TOKEN`, `BACKEND_IDENTITY_TOKEN`.
+- Reuse security schemes: `userAccessToken` (bearer), `refreshToken` (cookie), `AI_IDENTITY_TOKEN`, and `BACKEND_IDENTITY_TOKEN`.
+- Auth routes are public except refresh and sign-out, which use the `refreshToken` cookie. Do not generate the OpenAPI YAML in this design pass.
 - Group tags by resource, not by read/mutation workflow.
 - Define list, create, detail, patch, delete, and action subresources explicitly.
 - Attach the common error table to every operation through reusable responses, then add workflow-specific errors.
