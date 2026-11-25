@@ -2,7 +2,7 @@
 
 Verified technical and agent state. Paths are repository-relative. Product architecture in docs is labeled planned unless code implements it.
 
-Last inspected: 2026-11-25 (docs use a flat `docs/` tree with root and docs README indexes. Feature pages carry planned status, approvals has a state diagram, architecture is a system overview and backend component index, integrations owns the user-facing OAuth lifecycle, ADR-0007 owns OAuth mechanics, actions owns tool-execution mechanics, and knowledge is selected from the workspace library only. Authentication is documented as a planned design in `docs/features/auth.md`. No application code or runtime behavior changed in this design pass. Earlier onboarding checks remain recorded below.)
+Last inspected: 2026-11-25 (Drizzle ORM schema, `defineRelations`, `api/src/config/db.ts`, offline-safe `api/drizzle.config.ts`, `api/drizzle/20261125202721_sync_schema/`, and `api/tests/unit/schema.test.ts` aligned with `docs/database/schema.dbml`. Prior design pass: docs use a flat `docs/` tree with root and docs README indexes; feature pages carry planned status, approvals has a state diagram, architecture is a system overview and backend component index, integrations owns the user-facing OAuth lifecycle, ADR-0007 owns OAuth mechanics, actions owns tool-execution mechanics, and knowledge is selected from the workspace library only. Authentication is documented as a planned design in `docs/features/auth.md`.)
 
 ## 1. Project identity
 
@@ -42,14 +42,14 @@ TypeScript tooling versions are intentionally split between TypeScript 7 for com
 
 - Style: Express JSON API, with startup in [api/src/server.ts](api/src/server.ts) and app/routes in [api/src/app.ts](api/src/app.ts).
 - Runtime configuration: [api/src/config/env.ts](api/src/config/env.ts) loads dotenv, fetches secrets, then validates NODE_ENV, LOG_LEVEL, PORT, and DATABASE_URL with Zod. Only NODE_ENV is read from `process.env`; LOG_LEVEL, PORT, and DATABASE_URL must be returned by the Infisical secret lookup. [api/src/integrations/infisical/fetch-secrets.ts](api/src/integrations/infisical/fetch-secrets.ts) uses Infisical Universal Auth and selects the environment named by NODE_ENV. Missing bootstrap credentials fail startup at import time; an unset or unrecognized NODE_ENV falls back to development.
-- Database: [api/src/config/db.ts](api/src/config/db.ts) configures a PostgreSQL pool and Drizzle. [api/src/database/schema.ts](api/src/database/schema.ts) currently defines a users table. The health route does not use the database.
+- Database: [api/src/config/db.ts](api/src/config/db.ts) configures a PostgreSQL pool and Drizzle (`drizzle({ client: pool, relations })`). Domain tables and enums under `api/src/database/` (`enums.ts`, `auth.ts`, `workspaces.ts`, `agents.ts`, `integrations.ts`, `knowledge.ts`, `conversations.ts`, re-exported by [api/src/database/schema.ts](api/src/database/schema.ts) and [api/src/database/index.ts](api/src/database/index.ts)) plus [api/src/database/relations.ts](api/src/database/relations.ts) (`defineRelations`) match all 8 enums, 16 tables, and 28 relationships in [docs/database/schema.dbml](docs/database/schema.dbml). The health route does not use the database.
 - Logging: Pino and pino-http are configured in [api/src/config/logger.ts](api/src/config/logger.ts); development uses pino-pretty.
 - Boundaries: api/ contains the implemented backend scaffold. AI work lives in the separate felops-ai project. The Backend owns the code integration, action, and channel registries; workspace action settings; agent configs; credentials; tool execution; approvals; and conversation messages; the AI Service owns checkpoints, Qdrant, ingestion jobs, SSE, and webhooks. [docs/architecture.md](docs/architecture.md), [AI Service contract](docs/ai-service-integration/ai-service-contract.md)
 
 ## 5. Repository map
 
-- api/src/: Express app, runtime configuration, Infisical adapter, database setup, and schema.
-- api/tests/: currently one integration test for the health route.
+- api/src/: Express app, runtime configuration, Infisical adapter, database setup, and domain-organized schema/relations.
+- api/tests/: health-route integration test (`tests/integration/app.test.ts`) and schema parity unit tests (`tests/unit/schema.test.ts`).
 - docs/: architecture, API, database, feature, AI contract, engineering, onboarding, and work documentation.
 
 ## 6. Key files
@@ -59,8 +59,9 @@ TypeScript tooling versions are intentionally split between TypeScript 7 for com
 | [api/src/app.ts](api/src/app.ts) | JSON middleware and implemented health route |
 | [api/src/config/env.ts](api/src/config/env.ts) | Runtime environment and Zod validation |
 | [api/src/integrations/infisical/fetch-secrets.ts](api/src/integrations/infisical/fetch-secrets.ts) | Infisical Universal Auth secret retrieval |
-| [api/src/config/db.ts](api/src/config/db.ts) | PostgreSQL pool and Drizzle client |
-| [api/src/database/schema.ts](api/src/database/schema.ts) | Current users table schema |
+| [api/src/config/db.ts](api/src/config/db.ts) | PostgreSQL pool and Drizzle client with `defineRelations` |
+| [api/src/database/schema.ts](api/src/database/schema.ts) | Schema barrel re-exporting 8 enums and 16 domain tables |
+| [api/src/database/relations.ts](api/src/database/relations.ts) | Drizzle Relations v2 (`defineRelations`) across all 16 tables |
 | [api/package.json](api/package.json) | API scripts and dependencies |
 | [docs/architecture.md](docs/architecture.md) | Proposed system architecture |
 | [docs/api/api-design-outline.md](docs/api/api-design-outline.md) | API organization, shared errors, and OpenAPI generation approach |
@@ -80,9 +81,9 @@ TypeScript tooling versions are intentionally split between TypeScript 7 for com
 
 | Store | Type | Used for | Main entities |
 | --- | --- | --- | --- |
-| PostgreSQL | Relational, via pg and Drizzle | Configured database connection | users table only in the current schema |
+| PostgreSQL | Relational, via pg and Drizzle | Configured database connection and schema | 8 enums and 16 tables matching `docs/database/schema.dbml` |
 
-Migration commands/configuration exist in [api/package.json](api/package.json) and [api/drizzle.config.ts](api/drizzle.config.ts). Two initial migrations are present: the first creates `users` with an `age` column, and the second drops `age`, leaving the executable `users` schema. `api/drizzle/meta/_journal.json` is absent, so migration viability is Unknown. No migration behavior was verified for this task.
+Migration commands/configuration exist in [api/package.json](api/package.json) and [api/drizzle.config.ts](api/drizzle.config.ts). `api/drizzle.config.ts` loads Infisical `DATABASE_URL` via `src/config/env.ts` when bootstrap env vars are present and falls back to `process.env.DATABASE_URL ?? ''` for offline `drizzle-kit generate` / `check` / `export`. Three Drizzle v1 RC (`version: "8"`) migration folders are present in `api/drizzle/`: `20261004160319_init`, `20261004160522_init`, and `20261125202721_sync_schema` (each containing `migration.sql` and `snapshot.json`; `drizzle-kit@^1.0.0-rc.4` does not use `meta/_journal.json`). `drizzle-kit check` passed; `database:migrate` has not been executed against a live database.
 
 ## 9. Integrations
 
@@ -120,4 +121,5 @@ Coding-agent host configuration: each host has its own surface. Claude Code uses
 - Backend documentation consistency check passed on 2026-11-21 after finalizing the backend component index, database relationships, workspace assignment flows, and OAuth/tool-execution ownership. API lint, typecheck, and build passed on 2026-11-21; no application source changed.
 - Backend documentation consistency check passed on 2026-11-25 after finalizing the planned authentication design. The DBML schema defines 16 tables and 28 relationships (`@dbml/core` 12.1.0 parsed the 16-table/28-relationship structure prior to adding `[not null]` on `users.is_verified`). No application source changed.
 - CI covers only the two agent-config checks: `.github/workflows/agent-workflow.yml` and `.github/workflows/opencode-config.yml` run on pull requests and pushes to `main`. No lint, typecheck, build, or test workflow exists.
+- Drizzle schema alignment passed on 2026-11-25 (`feature/auth`): Prettier check on changed files, `npm run typecheck --prefix api`, `npm run lint --prefix api`, `npm run build --prefix api`, `npm test --prefix api` (2 files, 7 tests passed with local Infisical bootstrap credentials in place), `npx drizzle-kit check`, `bash bin/check-backend-docs.sh`, and `bash bin/check-agent-workflow.sh` all passed. `database:migrate` was not run against PostgreSQL.
 - Docs PR #1 targets main and was open when checked on 2026-10-22. Treat its proposed docs as unmerged, non-implementation evidence. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
