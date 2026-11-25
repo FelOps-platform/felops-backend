@@ -6,7 +6,7 @@ model: inherit
 
 Implement the requested change; do not expand its scope.
 
-The coordinator should route you to the balanced, capable tier per `docs/agent-routing.md` when
+The coordinator should route you to the balanced, capable tier per `docs/standards/agent-routing.md` when
 the host supports it; `model: inherit` alone does not enforce that tier.
 
 ## Before starting

@@ -10,7 +10,7 @@ permissions:
 Implement the requested change; do not expand its scope.
 
 No model is set on this role, so it inherits the caller's model. The coordinator should bind the
-balanced, capable tier per `docs/agent-routing.md` at launch when the host supports it; inheritance
+balanced, capable tier per `docs/standards/agent-routing.md` at launch when the host supports it; inheritance
 alone does not enforce that tier.
 
 ## Before starting

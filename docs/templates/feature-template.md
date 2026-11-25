@@ -29,17 +29,17 @@ Describe the user-visible or system behavior in plain language.
 
 ## Backend workflow design (when relevant)
 
-Link the relevant sections of `docs/architecture.md` and
-`docs/database.md`, the sprint scope in `docs/delivery.md`, and the Apidog API
-contract when available. Use the component names and workflow design guidance in
-`docs/delivery.md`.
+Link the sprint HLD in `docs/` and write a short workflow LLD here or link
+its existing backend document. Use the component names from that architecture.
 
-Describe this task's design changes, important failures, and deferred scope.
-Update the affected canonical architecture or database documents in the same change;
-do not copy the current system design or split the remaining schema into this
-work brief. The work brief is the change specification; there is no separate
-specifications folder. Keep endpoint contracts and request/response mocks in
-Apidog.
+- Main sequence: numbered steps across API Server, AI Service, and external
+  systems as relevant. The Backend supplies tools in the incoming turn context
+  and executes tool calls.
+- API endpoints: method, path, request, success response, and errors.
+- Data model: entities, key fields, workspace ownership, and state transitions.
+- Failure cases: the important failures, timeouts, and permission errors; link
+  each to its sequence step, user-visible result, and cleanup.
+- Deferred scope: what this sprint deliberately leaves for later.
 
 ## Impacted areas
 

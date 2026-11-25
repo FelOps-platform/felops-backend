@@ -1,9 +1,8 @@
-# FelOps Backend
+# FelOps Backend API
 
-This is the TypeScript/Express API scaffold. The only implemented HTTP route is
-`GET /api/v1/health`; product workflows in the design documents remain planned.
-The MCP runtime is planned as a module embedded in this API service, with no code
-yet ([ADR-0002](../docs/adr/ADR-0002-embed-mcp-in-api-service.md)).
+TypeScript/Express API for FelOps. The only implemented product route is `GET /api/v1/health`; product workflows in the documentation remain planned.
+
+The AI Service is a separate repository. The Backend owns agent configuration, credentials, tool execution, approvals, and frontend conversation history. Provider credentials never leave the Backend.
 
 ## Setup
 
@@ -13,14 +12,9 @@ From the repository root, install dependencies without running lifecycle scripts
 npm ci --prefix api --ignore-scripts
 ```
 
-Server startup and the test suite load runtime secrets from Infisical. They need
-`INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID`,
-provided through the team's secure setup process; `.env.example` lists the
-variable names. Do not commit credentials.
+Server startup and the test suite load runtime secrets from Infisical. They need `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID`, provided through the team's secure process. `.env.example` lists the variable names. Do not commit credentials.
 
-The install command skips Husky's setup script and does not configure Git's
-local `core.hooksPath`. Hook files live in `.husky/`; activation depends on the
-existing Git configuration, so run checks explicitly.
+The install command skips Husky setup and does not configure Git's local `core.hooksPath`. Run checks explicitly.
 
 ## Commands
 
@@ -34,31 +28,18 @@ npm run build --prefix api
 npm test --prefix api
 ```
 
-The server and tests require Infisical bootstrap credentials; lint, typecheck,
-and build do not.
+The server and tests require Infisical bootstrap credentials; lint, typecheck, and build do not.
 
 ## Project map
 
-- `src/app.ts` and `src/server.ts`: Express app and server; the health route is
-  the only implemented endpoint.
-- `src/config/` and `src/integrations/infisical/`: runtime configuration,
-  database connection, logging, and secret retrieval.
+- `src/app.ts` and `src/server.ts`: Express app and server; the health route is the only implemented endpoint.
+- `src/config/` and `src/integrations/infisical/`: runtime configuration, database connection, logging, and secret retrieval.
 - `src/database/schema.ts` and `drizzle/`: Drizzle schema and migrations.
-- The planned MCP module will live under `src/`; no MCP code exists yet
-  ([ADR-0002](../docs/adr/ADR-0002-embed-mcp-in-api-service.md)).
 - `tests/`: backend test suite.
 
 ## Design and contributor docs
 
-- Project: [Documentation entry](../docs/README.md),
-  [Architecture](../docs/architecture.md), [Database](../docs/database.md), and
-  [Delivery](../docs/delivery.md).
-- Contributors: [Repository instructions](../AGENTS.md),
-  [Agent onboarding](../docs/onboarding/agent-onboarding.md),
-  [Project context](../docs/project-context.md), and
-  [Verified metadata](../agent-metadata.md).
+- Project: [Documentation entry](../docs/README.md), [Architecture](../docs/architecture.md), [API outline](../docs/api/api-design-outline.md), and [Database schema](../docs/database/schema.dbml).
+- Contributors: [Repository instructions](../AGENTS.md), [Agent onboarding](../docs/onboarding/agent-onboarding.md), [Project context](../docs/project-context.md), and [Verified metadata](../agent-metadata.md).
 
-Apidog is the intended source for API contracts and mocks; see the
-[Delivery handoff](../docs/delivery.md#current-handoff). Workspace invitation and
-the database design revision are pending. No Apidog workspace URL or existing
-mock collection is documented here.
+Low-level OpenAPI specifications are generated after implementation into `docs/api/openapi.client.yaml` and `docs/api/openapi.internal.yaml`.

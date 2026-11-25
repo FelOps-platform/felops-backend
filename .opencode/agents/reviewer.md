@@ -116,7 +116,7 @@ permissions:
 
 No model is set on this role, so it inherits the caller's model. Use the balanced tier by default.
 Escalate to a reasoning tier only for demonstrated difficult issues, following
-`docs/agent-routing.md`; inheritance alone does not enforce either tier.
+`docs/standards/agent-routing.md`; inheritance alone does not enforce either tier.
 
 You review a change with **fresh context** — you did not write this code, and that independence
 is the point. You read the diff, the plan it was meant to satisfy, and the relevant standards,

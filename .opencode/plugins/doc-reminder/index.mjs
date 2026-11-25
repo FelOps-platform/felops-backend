@@ -22,8 +22,8 @@
 import { execFileSync } from "node:child_process"
 
 const REMINDER =
-  "Docs reminder: code changed but no work doc, project context, ADR, constitution document, or agent-metadata.md " +
-  "was updated. If this change was significant, update verified project records before shipping."
+  "Docs reminder: code changed but no project doc or agent-metadata.md update was found. " +
+  "If this change was significant, update verified project records before shipping."
 
 // No shell: args are passed as an array straight to git.
 function git(cwd, args) {
@@ -86,19 +86,9 @@ function classify(files) {
   let codeChanged = false
 
   for (const file of files) {
-    if (
-      file === "agent-metadata.md" ||
-      file === "docs/README.md" ||
-      file === "docs/project-context.md" ||
-      file === "docs/architecture.md" ||
-      file === "docs/database.md" ||
-      file === "docs/delivery.md" ||
-      file.startsWith("docs/work/") ||
-      file.startsWith("docs/adr/")
-    ) {
+    if (file === "agent-metadata.md" || file.startsWith("docs/")) {
       docsUpdated = true
     } else if (
-      file.startsWith("docs/") ||
       file.startsWith(".claude/") ||
       file.startsWith(".cursor/") ||
       file.startsWith(".opencode/") ||

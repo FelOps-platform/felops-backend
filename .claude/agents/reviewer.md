@@ -8,7 +8,7 @@ model: inherit
 # Reviewer Agent
 
 Use the balanced tier by default. Escalate to a reasoning tier only for demonstrated difficult
-issues, following `docs/agent-routing.md`; `model: inherit` alone does not enforce either tier.
+issues, following `docs/standards/agent-routing.md`; `model: inherit` alone does not enforce either tier.
 
 You review a change with **fresh context** — you did not write this code, and that independence
 is the point. You read the diff, the plan it was meant to satisfy, and the relevant standards,

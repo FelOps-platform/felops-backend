@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-for helper in bin/diff.sh bin/check-agent-workflow.sh; do
+for helper in bin/diff.sh bin/check-agent-workflow.sh bin/check-backend-docs.sh; do
   bash -n "$helper"
 done
 node --check .claude/hooks/doc-reminder.mjs
@@ -49,8 +49,9 @@ assert.equal(cursor.hooks.stop[0].loop_limit, 2);
 // Resolve local Markdown links in workflow records; leave URLs and template placeholders alone.
 const docs = [
   'AGENTS.md',
+  'README.md',
   'agent-metadata.md',
-  ...files('docs'),
+  ...files('docs').filter((file) => !file.startsWith(path.join('docs', 'private'))),
   ...files('.cursor/rules'),
   '.github/PULL_REQUEST_TEMPLATE.md',
 ];
@@ -95,20 +96,13 @@ try {
   writeFileSync(path.join(fixture, 'api/src/example.ts'), 'export const value = 2;\n');
   assert.ok(JSON.parse(run('claude', true)).systemMessage);
   assert.ok(JSON.parse(run('cursor')).followup_message);
-  for (const doc of [
-    'docs/README.md',
-    'docs/project-context.md',
-    'docs/architecture.md',
-    'docs/database.md',
-    'docs/delivery.md',
-  ]) {
-    writeFileSync(path.join(fixture, doc), '# Constitution document\n');
-    assert.equal(run('claude', true), '', `${doc} must suppress the Claude reminder`);
-    assert.equal(run('cursor'), '', `${doc} must suppress the Cursor reminder`);
-    rmSync(path.join(fixture, doc));
-  }
+  writeFileSync(path.join(fixture, 'docs/workflow.md'), '# Backend workflow\n');
+  assert.equal(run('claude', true), '');
+  assert.equal(run('cursor'), '');
 } finally {
   rmSync(fixture, { recursive: true, force: true });
 }
 console.log('Agent workflow configuration, adapter parity, local links, and configured hook launches passed.');
 NODE
+
+bash "$ROOT/bin/check-backend-docs.sh"

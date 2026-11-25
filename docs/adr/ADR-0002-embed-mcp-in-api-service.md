@@ -1,9 +1,11 @@
 # ADR-0002: Embed the MCP runtime in the API service
 
-Status: Accepted
+Status: Superseded by [ADR-0004](ADR-0004-backend-owned-tool-execution.md)
 Date: 2026-11-01
 Deciders: Backend team
 Area: architecture
+
+> **Superseded:** ADR-0004 replaces the MCP runtime with Backend-owned tool execution. This record remains for historical context.
 
 ## Context
 
@@ -65,7 +67,7 @@ yet, and this ADR does not authorize a scaffold.
   checks, and connectors do not couple to HTTP request handling.
 - Product credential delivery and rules synchronization remain open decisions;
   embedding the module does not settle them. See
-  [Architecture open decisions](../architecture.md#open-decisions).
+  [Architecture decision records](../architecture.md#decision-records).
 - Monitoring and audit behavior for the module are unknown until it is designed.
 
 ### Operations

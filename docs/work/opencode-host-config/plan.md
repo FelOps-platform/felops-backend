@@ -34,7 +34,7 @@ Feature brief: [brief.md](brief.md)
    and drizzle-kit writes, publishes, pushes, merges, and hard resets; these are
    the actions `AGENTS.md` forbids running unattended.
 6. Document the host split in `.opencode/README.md`, `agent-metadata.md`, and the
-   model-inheritance rule in `docs/agent-routing.md` and `AGENTS.md`, including
+   model-inheritance rule in `docs/standards/agent-routing.md` and `AGENTS.md`, including
    how a contributor binds model tiers in personal config.
 7. Add a separate `bin/check-opencode-config.sh` for OpenCode parity, project
    approval rules, and plugin behavior, leaving `bin/check-agent-workflow.sh`

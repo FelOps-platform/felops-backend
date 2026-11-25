@@ -2,7 +2,7 @@
 
 OpenCode-native equivalents of the repository's Claude Code and Cursor setup. `.claude/` and
 `.cursor/` remain the canonical sources for those hosts and are not modified by anything here; the
-files below are ports, so keep them in sync when a role, command, or hook changes upstream.
+files below are ports, except the OpenCode-only `/design` command, so keep them in sync when a role, command, or hook changes upstream.
 
 OpenCode V2 picks the directory contents up automatically. The repository-root `opencode.json` only
 adds approval prompts; it does not register agents, commands, or the plugin.
@@ -13,6 +13,7 @@ adds approval prompts; it does not register agents, commands, or the plugin.
 | `.opencode/agents/implementer.md` | Scoped implementation subagent | `.claude/agents/implementer.md`, `.cursor/agents/implementer.md` |
 | `.opencode/agents/reviewer.md` | Independent review subagent | `.claude/agents/reviewer.md`, `.cursor/agents/reviewer.md` |
 | `.opencode/commands/onboard.md` | `/onboard` | `.claude/commands/onboard.md` |
+| `.opencode/commands/design.md` | `/design` | OpenCode-only command |
 | `.opencode/commands/plan.md` | `/plan` | `.claude/commands/plan.md` |
 | `.opencode/commands/implement.md` | `/implement` | `.claude/commands/implement.md` |
 | `.opencode/commands/ship.md` | `/ship` | `.claude/commands/ship.md` |
@@ -26,8 +27,8 @@ adds approval prompts; it does not register agents, commands, or the plugin.
   dropped. `tools:` becomes `permissions:` rules. The role's model is omitted entirely: OpenCode
   inherits the caller's model when no `model` is set, which is what `model: inherit` means for the
   other hosts. No model names are pinned in this repository, per the adoption criteria.
-- **Commands** carry over unchanged. Only `description` frontmatter and the Markdown body are used by
-  OpenCode, so no rewrite was needed.
+- **Commands** carry over unchanged, except `/design`, which is OpenCode-only. Only `description`
+  frontmatter and the Markdown body are used by OpenCode, so no rewrite was needed.
 - **The docs reminder** is a session `context` hook, not a stop hook. OpenCode does not read
   `.claude/settings.json` or `.cursor/hooks.json`, and it has no shell-command stop hook. The
   plugin appends a system reminder before the first model request where the changes contain code
@@ -44,7 +45,7 @@ adds approval prompts; it does not register agents, commands, or the plugin.
 
 ## Model tiers
 
-`docs/agent-routing.md` asks for a fast tier for exploration and a balanced tier for implementation
+`docs/standards/agent-routing.md` asks for a fast tier for exploration and a balanced tier for implementation
 and review, but the roles deliberately do not pin model names. Bind them per user instead, in your
 own `~/.config/opencode/opencode.json`, and confirm with `opencode debug agents` that the role keeps
 its prompt and takes the model:
@@ -94,10 +95,10 @@ implementer only; the read-only roles cannot call them.
 
 - `node --check .opencode/plugins/doc-reminder/index.mjs` parses the plugin; it is plain ESM with no
   build or type-check step, like the hooks it ports.
-- `/onboard`, `/plan`, `/implement`, `/ship` should appear in the command list.
+- `/onboard`, `/design`, `/plan`, `/implement`, `/ship` should appear in the command list.
 - `explorer`, `implementer`, and `reviewer` should appear in the subagent catalog.
 - Make a code change without touching docs; the next model request should carry a "Docs reminder"
   system line, once per session. Repeat after committing the change.
 - `bash bin/check-opencode-config.sh` covers the same ground without credentials, and the
-  `OpenCode config` workflow runs it on pull requests. The existing
-  `bin/check-agent-workflow.sh` continues to cover the Claude/Cursor checks.
+  `OpenCode config` workflow runs it on pull requests. `bin/check-agent-workflow.sh` covers adapter
+  parity and local links, and also runs `bin/check-backend-docs.sh`.

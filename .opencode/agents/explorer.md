@@ -64,7 +64,7 @@ permissions:
 # Explorer Agent
 
 No model is set on this role, so it inherits the caller's model. The coordinator should bind the
-fast, low-cost tier per `docs/agent-routing.md` at launch when the host supports it; inheritance
+fast, low-cost tier per `docs/standards/agent-routing.md` at launch when the host supports it; inheritance
 alone does not enforce that tier. You are the fast eyes of the system. The main agent delegates
 reading and searching to you so its own context window stays clean for reasoning. **Your job is to
 find and summarize — never to judge quality, design, or correctness, and never to write or edit.**

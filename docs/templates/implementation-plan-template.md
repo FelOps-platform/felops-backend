@@ -24,12 +24,6 @@ A clear user request authorizes the work it describes. Do not add a redundant pl
 - Verified stack and commands: agent-metadata.md and repository files
 - Existing patterns and relevant ADRs:
 
-Link the current `docs/architecture.md`, `docs/database.md`, and
-`docs/delivery.md`, plus the Apidog contract when relevant. Plan updates to
-those canonical sources; a work plan records the intended change rather than
-duplicating the current design. The work brief is the change specification;
-there is no separate specifications folder.
-
 Do not invent a stack, dependency, or product requirement.
 
 ## 4. Affected areas

@@ -56,12 +56,15 @@ assert.match(normalize(read('.opencode/agents/reviewer.md')),
   /action: external_directory\n\s+resource: "\*"\n\s+effect: ask/,
   'reviewer must ask before reading outside the repository');
 
-// Commands are verbatim ports, so the two host copies cannot silently diverge.
+// Claude commands are verbatim ports, except the OpenCode-only design command.
 for (const file of files('.claude/commands')) {
   const target = path.join('.opencode/commands', path.relative('.claude/commands', file));
   assert.ok(existsSync(target), `${target}: missing OpenCode port of ${file}`);
   assert.equal(normalize(read(target)), normalize(read(file)), target);
 }
+assert.ok(existsSync('.opencode/commands/design.md'), 'OpenCode must provide the design command');
+assert.equal(existsSync('.claude/commands/design.md'), false, 'design.md is OpenCode-only');
+assert.equal(existsSync('.cursor/commands/design.md'), false, 'design.md is OpenCode-only');
 
 // Project permissions ask before the consequential commands AGENTS.md forbids
 // running unattended (migrations, vault/database writes, publishing, pushes).
@@ -76,7 +79,7 @@ for (const pattern of ['*database:migrate*', '*supabase *', 'git push *', 'git m
 // Node imports the shipped file directly.
 const fixture = mkdtempSync(path.join(tmpdir(), 'felops-opencode-check-'));
 try {
-  for (const dir of ['api/src', 'docs']) mkdirSync(path.join(fixture, dir), { recursive: true });
+  for (const dir of ['api/src']) mkdirSync(path.join(fixture, dir), { recursive: true });
   const git = (...args) => execFileSync('git', args, { cwd: fixture, stdio: 'ignore' });
   const commit = (message) => git('-c', 'user.name=Config Check', '-c', 'user.email=check@example.invalid',
     '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', 'commit', '-qm', message);
@@ -133,20 +136,6 @@ try {
   mkdirSync(path.join(fixture, 'docs/work/example'), { recursive: true });
   writeFileSync(path.join(fixture, 'docs/work/example/plan.md'), '# Plan\n');
   assert.equal(remind('oc-with-docs'), 0, 'a recognized doc must suppress the reminder');
-
-  // Each constitution document suppresses the reminder; use a fresh session for each.
-  rmSync(path.join(fixture, 'docs/work'), { recursive: true, force: true });
-  for (const [index, doc] of [
-    'docs/README.md',
-    'docs/project-context.md',
-    'docs/architecture.md',
-    'docs/database.md',
-    'docs/delivery.md',
-  ].entries()) {
-    writeFileSync(path.join(fixture, doc), '# Constitution document\n');
-    assert.equal(remind(`oc-constitution-${index}`), 0, `${doc} must suppress the reminder`);
-    rmSync(path.join(fixture, doc));
-  }
 
   // Committed work counts too: per-unit commits must not hide the reminder.
   git('checkout', '--', 'api/src/example.ts');

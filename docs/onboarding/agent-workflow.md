@@ -10,22 +10,19 @@ own tools and subagents.
 Read [agent-onboarding.md](agent-onboarding.md), the
 [project context](../project-context.md), and [verified metadata](../../agent-metadata.md).
 Use `/onboard`, `/plan`, `/implement`, and `/ship` in hosts that support the
-included commands. In other hosts, follow the same steps from `AGENTS.md`.
+included commands. OpenCode also provides `/design` for UI and backend design
+sessions. In other hosts, follow the same steps from `AGENTS.md`; development
+work continues through `/plan` and `/implement`.
 
 For substantial changes, copy the [brief](../templates/feature-template.md) and
 [plan](../templates/implementation-plan-template.md) into one `docs/work/<item>/`
-folder. Use a supplied issue ID or a short task name. Link the canonical
-[architecture](../architecture.md) and [database design](../database.md); update
-those files in place when the design changes. A work brief describes the change
-and its acceptance criteria, rather than holding a separate copy of the current
-design. Durable architecture decisions go in `docs/adr/` with links to the
-affected design.
+folder. Use a supplied issue ID or a short task name. Link existing backend
+designs in `docs/`. Durable architecture decisions go in `docs/adr/`.
 
-The [delivery sequence](../delivery.md) defines the team's
-Design → Implementation → Deployment sequence and workflow design contents.
-This agent loop supplies task execution, verification, and review within it.
-Deployment requires its own authorization; completion of a coding task does
-not initiate it.
+The team's Design → Implementation → Deployment process remains the sprint
+structure. Work briefs capture the sequence, endpoints, data, important failures,
+and deferred scope needed for workflow LLDs. Deployment requires its own
+authorization; completion of a coding task does not initiate it.
 
 ## Verify and review
 
@@ -35,10 +32,8 @@ does not certify application behavior. Use the backend commands in `AGENTS.md`
 for product changes and report environment limitations accurately.
 
 The stop hooks inspect the current working tree. Code-only changes trigger a
-documentation reminder; updates to the constitution documents (`docs/README.md`,
-`docs/project-context.md`, `docs/architecture.md`, `docs/database.md`,
-`docs/delivery.md`), `docs/work/`, `docs/adr/`, or `agent-metadata.md` satisfy
-it. Claude's reminder is informational; Cursor may request a follow-up
+documentation reminder; updates to root project/work/ADR records or `docs/`
+satisfy it. Claude's reminder is informational; Cursor may request a follow-up
 with a bounded loop. Neither reminder replaces review or proves docs are correct.
 
 Open the repository root in the host. Claude's configured launcher uses its
@@ -53,7 +48,7 @@ Use a reviewer who did not implement the change, and prepare the PR with
 `.github/PULL_REQUEST_TEMPLATE.md`. Run `bash bin/diff.sh` for working-tree and
 untracked files; use `git diff --cached` for staged changes.
 
-Use the [routing policy](../agent-routing.md) before delegation: fast explorers,
+Use the [routing policy](../standards/agent-routing.md) before delegation: fast explorers,
 balanced implementers and independent reviewers, with reasoning escalation for
 demonstrated difficult review issues. The coordinator maps tiers to available
 models using host-supported controls. Native `model: inherit` declarations alone
