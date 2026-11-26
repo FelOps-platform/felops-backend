@@ -208,14 +208,16 @@ const authEndpoints = [
   'POST /api/v1/auth/sign-in',
   'POST /api/v1/auth/refresh',
   'POST /api/v1/auth/sign-out',
+  'GET /api/v1/auth/me',
   'POST /api/v1/auth/password-reset/request',
+  'POST /api/v1/auth/password-reset/verify',
   'POST /api/v1/auth/password-reset/confirm',
 ];
 assert.match(auth, /^## 1\. Workflows$/m, 'auth page documents workflows');
 assert.match(auth, /^## 2\. Session states$/m, 'auth page documents session states');
 assert.match(auth, /^## 3\. Future work$/m, 'auth page documents future work');
 assert.match(auth, /^## 4\. Decisions$/m, 'auth page documents decisions');
-assert.equal((auth.match(/^### /gm) || []).length, 7, 'auth page documents seven workflows');
+assert.equal((auth.match(/^### /gm) || []).length, 9, 'auth page documents nine workflows');
 assert.match(auth, /stateDiagram-v2/, 'auth page includes a session state diagram');
 for (const endpoint of authEndpoints) {
   assert.ok(auth.includes(endpoint), `auth page includes ${endpoint}`);
@@ -225,11 +227,14 @@ for (const error of [
   '401 INVALID_CREDENTIALS',
   '403 EMAIL_NOT_VERIFIED',
   '401 SESSION_EXPIRED',
+  '404 NOT_FOUND',
+  '409 EMAIL_ALREADY_EXISTS',
+  '409 EMAIL_ALREADY_VERIFIED',
   '422 INVALID_VERIFICATION_CODE',
   '422 VERIFICATION_CODE_EXPIRED',
   '422 INVALID_RESET_CODE',
   '422 RESET_CODE_EXPIRED',
-  '422 WEAK_PASSWORD',
+  '422 VALIDATION_ERROR',
   '429 RATE_LIMITED',
 ]) {
   assert.ok(auth.includes(error), `auth page documents ${error}`);
@@ -240,21 +245,22 @@ assert.match(auth, /10-minute expiry/, 'auth page documents code expiry');
 assert.match(auth, /5 attempts/, 'auth page documents code attempts');
 assert.match(auth, /60-second/, 'auth page documents the resend cooldown');
 assert.match(auth, /single-use/, 'auth codes are single-use');
-assert.match(auth, /12 characters/, 'passwords have a minimum length');
+assert.match(auth, /12 characters|12-character/, 'passwords have a minimum length');
 assert.match(auth, /30-day absolute lifetime/, 'refresh sessions have an absolute lifetime');
 assert.match(auth, /grace window/, 'concurrent refresh rotation notes a grace window');
 assert.match(auth, /existing unverified email/, 'sign-up prevents unverified pre-hijacking');
 assert.match(auth, /opaque `<session_id>\.<secret>` value/, 'auth page documents the refresh-token session identifier');
-assert.match(auth, /cooldown is keyed to the normalized email and client IP/i, 'auth cooldowns do not reveal account existence');
-assert.match(auth, /404 NOT_FOUND/, 'auth page records the non-member workspace boundary');
+assert.match(auth, /cooldown is keyed to the normalized email and client IP/i, 'auth cooldowns key on email and IP');
+assert.match(auth, /404 NOT_FOUND/, 'auth page records the not-found boundary');
 assert.match(api, /EMAIL_NOT_VERIFIED/, 'API outline documents unverified-email sign-in');
+assert.match(api, /EMAIL_ALREADY_EXISTS/, 'API outline documents existing-email sign-up conflict');
 assert.match(api, /SESSION_EXPIRED/, 'API outline documents expired sessions');
 assert.match(api, /HttpOnly/, 'API outline documents the refresh cookie');
 assert.match(api, /grace window/, 'API outline documents concurrent refresh grace');
 assert.match(api, /non-members receive `404 NOT_FOUND`/, 'API outline records the non-member workspace boundary');
-assert.match(api, /cooldowns are keyed to the normalized email and client IP/i, 'API outline records uniform auth cooldowns');
+assert.match(api, /cooldowns are keyed to the normalized email and client IP/i, 'API outline records auth cooldowns');
 assert.match(api, /Workspace routes require a user access token/, 'API outline separates user identity from workspace access');
-assert.match(api, /Enumeration-safe auth responses use an empty `202`/, 'API outline allows empty enumeration-safe 202 responses');
+assert.match(api, /empty `202`/, 'API outline allows empty 202 auth responses');
 assert.match(api, /resource-specific 401\/403 codes/, 'API outline allows auth-specific 401 and 403 codes');
 assert.match(architecture, /\[Authentication\]\(features\/auth\.md\)/, 'architecture links the auth page');
 
