@@ -1,0 +1,52 @@
+export const AUTH_ERROR_CODES = {
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
+  EMAIL_ALREADY_EXISTS: 'EMAIL_ALREADY_EXISTS',
+  EMAIL_ALREADY_VERIFIED: 'EMAIL_ALREADY_VERIFIED',
+  INVALID_VERIFICATION_CODE: 'INVALID_VERIFICATION_CODE',
+  VERIFICATION_CODE_EXPIRED: 'VERIFICATION_CODE_EXPIRED',
+  INVALID_RESET_CODE: 'INVALID_RESET_CODE',
+  RESET_CODE_EXPIRED: 'RESET_CODE_EXPIRED',
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  UNAUTHENTICATED: 'UNAUTHENTICATED',
+} as const;
+
+export const USER_RESOURCE_NAME = 'user';
+
+export const AUTH_CODE_PURPOSE = {
+  EMAIL_VERIFICATION: 'email_verification',
+  PASSWORD_RESET: 'password_reset',
+} as const;
+
+export type AuthCodePurpose = (typeof AUTH_CODE_PURPOSE)[keyof typeof AUTH_CODE_PURPOSE];
+
+export const AUTH_CODE_LENGTH = 6;
+export const AUTH_CODE_TTL_MINUTES = 10;
+export const AUTH_CODE_TTL_MS = AUTH_CODE_TTL_MINUTES * 60 * 1000;
+export const AUTH_CODE_MAX_ATTEMPTS = 5;
+export const AUTH_COOLDOWN_MS = 60 * 1000;
+
+export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
+export const RESET_TOKEN_TTL_SECONDS = 10 * 60;
+export const REFRESH_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const REFRESH_GRACE_WINDOW_MS = 10 * 1000;
+
+export const REFRESH_COOKIE_NAME = 'felops_refresh_token';
+export const REFRESH_COOKIE_PATH = '/api/v1/auth';
+
+export const MIN_PASSWORD_LENGTH = 12;
+export const MAX_PASSWORD_LENGTH = 128;
+export const MAX_USER_NAME_LENGTH = 50;
+export const MAX_EMAIL_LENGTH = 255;
+export const MAX_USER_AGENT_LENGTH = 512;
+
+export const AUTH_RATE_LIMITS = {
+  SIGN_UP: { windowMs: 15 * 60 * 1000, limit: 10 },
+  SIGN_IN: { windowMs: 15 * 60 * 1000, limit: 20 },
+  VERIFY_EMAIL: { windowMs: 15 * 60 * 1000, limit: 20 },
+  RESEND_VERIFICATION: { windowMs: 15 * 60 * 1000, limit: 10 },
+  PASSWORD_RESET_REQUEST: { windowMs: 15 * 60 * 1000, limit: 10 },
+  PASSWORD_RESET_VERIFY: { windowMs: 15 * 60 * 1000, limit: 20 },
+  PASSWORD_RESET_CONFIRM: { windowMs: 15 * 60 * 1000, limit: 10 },
+} as const;
