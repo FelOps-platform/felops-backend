@@ -1,28 +1,124 @@
-import { z } from 'zod';
 import 'dotenv/config';
-import fetchSecrets from '../integrations/infisical/fetch-secrets.js';
+import { z } from 'zod';
+import { fetchSecrets } from '../infra/infisical/fetch-secrets.js';
 
-const allowedNodeEnvs = ['development', 'production', 'test'] as const;
-const allowedLogLevels = ['debug', 'info', 'warn', 'error', 'trace'] as const;
+export const ALLOWED_NODE_ENVS = ['development', 'production', 'test'] as const;
+export const ALLOWED_LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'trace'] as const;
 
-if (
-  !process.env.NODE_ENV ||
-  !allowedNodeEnvs.includes(process.env.NODE_ENV as (typeof allowedNodeEnvs)[number])
-) {
-  process.env.NODE_ENV = 'development';
+const trustProxySchema = z
+  .union([z.boolean(), z.number().int().min(0), z.string()])
+  .optional()
+  .default(false)
+  .transform((val): boolean | number | string => {
+    // Never pass blanket `true` to Express trust proxy, which allows X-Forwarded-For spoofing.
+    if (val === true) {
+      return 1;
+    }
+    if (typeof val === 'boolean' || typeof val === 'number') {
+      return val;
+    }
+    const trimmed = val.trim().toLowerCase();
+    if (trimmed === '' || trimmed === 'false' || trimmed === '0') {
+      return false;
+    }
+    if (trimmed === 'true') {
+      return 1;
+    }
+    const asNumber = Number(trimmed);
+    if (Number.isInteger(asNumber) && asNumber > 0) {
+      return asNumber;
+    }
+    return val.trim();
+  });
+
+const corsOriginsSchema = z
+  .union([z.array(z.string().min(1)), z.string()])
+  .transform((val) => {
+    const items = Array.isArray(val) ? val : val.split(',');
+    return items.map((item) => item.trim()).filter(Boolean);
+  })
+  .refine((origins) => origins.length > 0 && !origins.includes('*'), {
+    message: 'CORS_ORIGINS must contain at least one explicit origin and must not include "*"',
+  });
+
+const optionalBooleanSchema = z
+  .union([z.boolean(), z.string()])
+  .optional()
+  .transform((val, ctx) => {
+    if (val === undefined) {
+      return undefined;
+    }
+    if (typeof val === 'boolean') {
+      return val;
+    }
+    const lower = val.trim().toLowerCase();
+    if (lower === '') {
+      return undefined;
+    }
+    if (lower === 'true' || lower === '1') {
+      return true;
+    }
+    if (lower === 'false' || lower === '0') {
+      return false;
+    }
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Expected a boolean value ("true", "false", "1", or "0")',
+    });
+    return z.NEVER;
+  });
+
+export const envSchema = z
+  .object({
+    NODE_ENV: z.enum(ALLOWED_NODE_ENVS),
+    LOG_LEVEL: z.enum(ALLOWED_LOG_LEVELS),
+    PORT: z.coerce.number().int().min(1).max(65535),
+    DATABASE_URL: z.url(),
+    TRUST_PROXY: trustProxySchema,
+    CORS_ORIGINS: corsOriginsSchema,
+    JWT_ACCESS_SECRET: z.string().min(32),
+    JWT_RESET_SECRET: z.string().min(32),
+    AUTH_CODE_PEPPER: z.string().min(32),
+    REFRESH_TOKEN_PEPPER: z.string().min(32),
+    SENDGRID_API_KEY: z.string().min(1),
+    EMAIL_FROM: z.email(),
+    COOKIE_SECURE: optionalBooleanSchema,
+  })
+  .transform((parsed) => ({
+    ...parsed,
+    COOKIE_SECURE: parsed.COOKIE_SECURE ?? parsed.NODE_ENV === 'production',
+  }));
+
+export type EnvConfig = z.infer<typeof envSchema>;
+
+let currentConfig: EnvConfig | null = null;
+
+export function initConfig(config: EnvConfig): EnvConfig {
+  currentConfig = config;
+  return currentConfig;
 }
-const secrets = await fetchSecrets();
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(allowedNodeEnvs),
-  LOG_LEVEL: z.enum(allowedLogLevels),
-  PORT: z.coerce.number().int().min(1).max(65535),
-  DATABASE_URL: z.url(),
-});
+export function getConfig(): EnvConfig {
+  if (!currentConfig) {
+    throw new Error('Runtime config not initialized; call loadEnv() or initConfig() first.');
+  }
+  return currentConfig;
+}
 
-const env = envSchema.parse({
-  NODE_ENV: process.env.NODE_ENV,
-  ...secrets,
-});
+export async function loadEnv(): Promise<EnvConfig> {
+  if (
+    !process.env.NODE_ENV ||
+    !ALLOWED_NODE_ENVS.includes(process.env.NODE_ENV as (typeof ALLOWED_NODE_ENVS)[number])
+  ) {
+    process.env.NODE_ENV = 'development';
+  }
 
-export default env;
+  const secrets = await fetchSecrets();
+
+  return initConfig(
+    envSchema.parse({
+      NODE_ENV: process.env.NODE_ENV,
+      ...secrets,
+    }),
+  );
+}

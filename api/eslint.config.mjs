@@ -52,7 +52,7 @@ export default [
   {
     // Bootstrap-only exemptions: these files retrieve and validate the
     // configuration that every other module imports. Do not add call sites.
-    files: ['src/config/env.ts', 'src/integrations/infisical/fetch-secrets.ts'],
+    files: ['src/config/env.ts', 'src/infra/infisical/fetch-secrets.ts'],
     rules: {
       'no-restricted-properties': 'off',
     },

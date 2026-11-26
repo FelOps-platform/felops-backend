@@ -7,7 +7,7 @@ const hasInfisicalBootstrap =
   Boolean(process.env.INFISICAL_PROJECT_ID);
 
 const databaseUrl = hasInfisicalBootstrap
-  ? (await import('./src/config/env.js')).default.DATABASE_URL
+  ? (await (await import('./src/config/env.js')).loadEnv()).DATABASE_URL
   : (process.env.DATABASE_URL ?? '');
 
 export default defineConfig({

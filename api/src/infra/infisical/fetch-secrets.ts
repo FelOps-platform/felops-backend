@@ -1,6 +1,6 @@
 import { InfisicalSDK } from '@infisical/sdk';
 
-const fetchSecrets = async () => {
+export async function fetchSecrets(): Promise<Record<string, string>> {
   const infisicalSdk = new InfisicalSDK();
 
   if (
@@ -27,6 +27,4 @@ const fetchSecrets = async () => {
     acc[curr.secretKey] = curr.secretValue;
     return acc;
   }, {});
-};
-
-export default fetchSecrets;
+}
