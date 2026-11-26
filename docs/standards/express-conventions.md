@@ -10,27 +10,22 @@ and formatting. [Engineering conventions](engineering-conventions.md) owns cross
 and security rules. [AI engineering rules](ai-engineering-rules.md) applies to LLM-backed features.
 This page adds Express-specific mechanics and does not restate those owners.
 
-## 1. Verified stack and current scaffold
+## 1. Verified stack and golden blueprints
 
 | Item | Verified state | Source |
 | --- | --- | --- |
-| HTTP framework | Express `^5.2.1`; `@types/express ^5.0.6` | [api/package.json](../../api/package.json) |
-| Language and modules | TypeScript ESM, `NodeNext`, `strict` | [api/tsconfig.json](../../api/tsconfig.json) |
-| Validation | Zod `^4.6.5` | [api/package.json](../../api/package.json) |
-| Logging | Pino `^10.4.0`, pino-http `^11.0.0` | [api/package.json](../../api/package.json) |
+| HTTP & security | Express `^5.2.1`, `helmet`, `cors`, `cookie-parser`, `express-rate-limit` | [api/package.json](../../api/package.json) |
+| Language and modules | TypeScript 7 ESM, `NodeNext`, `strict` (temp TS 6 compat dep) | [api/tsconfig.json](../../api/tsconfig.json) |
+| Validation & OpenAPI | Zod `^4.6.5` (`z.toJSONSchema()` + `yaml` in `scripts/generate-openapi.ts`) | [api/package.json](../../api/package.json) |
+| Auth & email | `argon2`, `jose`, `@sendgrid/mail` | [api/package.json](../../api/package.json) |
+| Logging | Pino `^10.4.0`, `pino-http ^11.0.0` (with header/secret redaction) | [api/src/config/logger.ts](../../api/src/config/logger.ts) |
 | Data | Drizzle ORM `^1.0.0-rc.4`, `pg ^8.23.1` | [api/package.json](../../api/package.json) |
-| Tests | Vitest `^5.0.3`, Supertest `^7.3.1` | [api/package.json](../../api/package.json) |
+| Tests | Vitest `^5.0.3`, Supertest `^7.3.1`, `@electric-sql/pglite` (in-memory Postgres) | [api/package.json](../../api/package.json) |
 
-The current executable scaffold is deliberately small. [api/src/app.ts](../../api/src/app.ts) creates
-the app at module load, installs `express.json()` and the HTTP logger, and serves
-`GET /api/v1/health`. [api/src/server.ts](../../api/src/server.ts) calls `listen()` and logs with
-`console.log`. There are no module folders, request-id, Helmet, CORS, readiness route, `AppError`
-hierarchy, or global error handlers yet. `helmet`, `cors`, and a request-id package are not installed
-dependencies.
-
-The conventions below are the required target for new API code and for the next change to the app or
-server entry points. Do not describe an unimplemented piece as current behavior. Add missing
-dependencies only in an implementation change that uses them.
+Before building a new module, read the live golden reference files instead of inventing structure:
+- **Minimal CRUD + auth module:** `api/src/modules/workspaces/` (`routes`, `controller`, `service`, `repository`, `schemas`, `mapper`).
+- **Multi-workflow + transaction module:** `api/src/modules/auth/` (`services/*.service.ts`, shared `services/auth-code.helper.ts`, `auth.constants.ts`).
+- **Offline PostgreSQL test harness:** [api/tests/helpers/test-runtime.ts](../../api/tests/helpers/test-runtime.ts) (`createTestRuntime()` + `TRUNCATE ... CASCADE`).
 
 ## 2. Directory layout and layer boundaries
 
@@ -39,18 +34,20 @@ New features live under `api/src/modules/<feature>/`:
 ```text
 api/src/
   app.ts                         pure Express app factory; no listen()
+  routes.ts                      composes /api/v1 module routers (keeps server.ts focused)
   server.ts                      process bootstrap, readiness, listen(), shutdown
-  config/                        env, logger, database client
+  config/                        loadEnv()/getConfig(), initDatabase()/getDb(), initLogger()/getLogger() (no import-time I/O)
+  infra/                         internal platform clients (infisical, email, storage)
+  database/                      Drizzle schema and relations
   errors/                        AppError hierarchy and normalization
-  middleware/                    request id, not-found, global error handler
+  middleware/                    request id, validate, authenticate, rate-limit, error/404 handlers
   modules/<feature>/
     <feature>.routes.ts          method + path and middleware chain
     <feature>.controller.ts      HTTP mapping only
-    <feature>.service.ts         business rules, authorization, transactions
-    <feature>.repository.ts      Drizzle queries, optional tx
+    <feature>.service.ts         business rules (or services/<workflow>.service.ts for multi-workflow modules)
+    <feature>.repository.ts      Drizzle queries (single definition per query; optional tx)
     <feature>.schemas.ts         Zod request schemas
     <feature>.mapper.ts           row-to-DTO mapping
-    middleware/                  feature-specific auth or tenancy checks
 ```
 
 The request direction is `routes -> middleware -> controller -> service -> repository (Drizzle)`.
@@ -76,29 +73,28 @@ in emitted JavaScript. Verify runtime resolution before using `@/*` in `api/src`
 
 | File | Owns | Must not |
 | --- | --- | --- |
-| `app.ts` | A pure `createApp()` factory that composes middleware and routers and returns the app | `listen()`, process signals, Infisical login, database readiness |
-| `server.ts` | Importing validated config, confirming database readiness, calling `listen()`, handling signals and fatal process errors | Route definitions, business logic, test imports |
+| `app.ts` | A pure `createApp()` factory that composes global middleware and routers and returns the app | `listen()`, process signals, Infisical login, database readiness |
+| `routes.ts` | Composing `/api/v1` module routers (auth, workspaces, future domains) so `server.ts` stays concise | Business rules, `listen()`, process signals |
+| `server.ts` | Calling `loadEnv()`, `initLogger()`, `initDatabase()`, `initEmailSender()`, confirming DB readiness (`SELECT 1`), calling `listen()`, handling signals and fatal errors | Route definitions, business logic, test imports |
 
-Tests import the factory, never the listening server. Keep a default `app` export only if existing
-tests need it; prefer an explicit `createApp()` with injectable dependencies so tests do not require
-Infisical bootstrap credentials.
+Tests import `createApp()` (never `server.ts`) after calling `initTestConfig()` or
+`createTestRuntime()`, so unit and HTTP integration tests run offline without Infisical credentials.
 
 ### Repository transactions
 
-Repositories accept an optional Drizzle executor so services can pass a transaction without leaking
-transaction handling into HTTP code:
+Repositories accept an optional Drizzle executor defaulting to `getDb()` so services can pass a transaction without leaking transaction handling into HTTP code or wrapping repositories in classes:
 
 ```ts
-import db from '../../config/db.js';
-import type { Database } from '../../config/db.js';
+import { getDb } from '../../config/db.js';
+import type { DbExecutor } from '../../config/db.js';
 
-export type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0];
-export type DbExecutor = Database | DbTransaction;
-
-export function findAgent(workspaceId: number, agentId: number, tx: DbExecutor = db) {
+export function findAgent(
+  input: { workspaceId: number; agentId: number },
+  tx: DbExecutor = getDb(),
+) {
   return tx.query.agents.findFirst({
     where: (agents, { and, eq }) =>
-      and(eq(agents.id, agentId), eq(agents.workspaceId, workspaceId)),
+      and(eq(agents.id, input.agentId), eq(agents.workspaceId, input.workspaceId)),
   });
 }
 ```
@@ -136,13 +132,13 @@ widen a transaction to `Database` to make a call type-check.
 - **`res.headersSent` is a hard guard.** If a response has started, do not write JSON again; delegate
   with `next(err)` and let Express close the connection.
 
-Validation middleware stores parsed input; it does not mutate the request:
+Validation middleware stores parsed input; controllers read it via typed helpers instead of raw casts:
 
 ```ts
-res.locals.validated = { body: parsedBody, query: parsedQuery, params: parsedParams };
+const { body, params } = getValidated<CreateWorkspaceInput, unknown, WorkspaceParamsInput>(res);
+const { userId } = getAuthUser(res);
 ```
 
-A controller that needs a typed local can use `Response<unknown, { validated: ValidatedRequest }>`.
 Do not add a global `Express.Request` augmentation for route-specific data.
 
 ## 4. Global middleware order in `api/src/app.ts`
@@ -173,32 +169,31 @@ item safe; reordering changes security or observability behavior. Optional items
 10. `app.use(errorHandlerMiddleware)` last. It must have four parameters so Express recognizes it as an
     error handler.
 
-Target shape:
+Implemented shape in [api/src/app.ts](../../api/src/app.ts) (add `/internal` and `/webhooks/ai` mounts here when implemented):
 
 ```ts
-export function createApp(deps: AppDependencies = defaultDependencies) {
+export function createApp(router: Router = clientRouter): Express {
+  const config = getConfig();
+  const logger = getLogger();
   const app = express();
 
-  app.set('trust proxy', deps.config.TRUST_PROXY);
-  app.use(requestId);
-  app.use(httpLogger);
+  app.set('trust proxy', config.TRUST_PROXY);
+  app.use(requestIdMiddleware);
+  app.use(createHttpLogger(logger));
   app.use(helmet());
-  app.use(cors({ origin: deps.config.CORS_ORIGINS, credentials: true }));
+  app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
+  app.use(cookieParser());
   app.use(express.json({ limit: '100kb' }));
 
-  app.get('/api/v1/health', healthHandler);
+  app.get('/api/v1/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
 
-  // Add root liveness/readiness probes only when the owning API and deployment
-  // docs define them; they are not part of the client API contract.
-  // app.get('/health', livenessHandler);
-  // app.get('/ready', readinessHandler);
-
-  app.use('/api/v1', clientRouter);
-  app.use('/internal', internalRouter);
-  app.use('/webhooks/ai', aiWebhookRouter);
+  app.use('/api/v1', router);
+  // Mount /internal and /webhooks/ai separately when implemented.
 
   app.use(notFoundMiddleware);
-  app.use(errorHandlerMiddleware);
+  app.use(createErrorHandler(logger));
 
   return app;
 }
@@ -209,10 +204,6 @@ public health route. Root `/health` and `/ready` probes are operational, not a n
 if the deployment platform requires them, update the API outline, architecture, and README in the same
 change and keep the product health route intact. The earlier embedded MCP mount is not part of this
 shape; [ADR-0004](../adr/ADR-0004-backend-owned-tool-execution.md) supersedes it.
-
-The current [api/src/app.ts](../../api/src/app.ts) implements only JSON parsing, the HTTP logger, and
-the health route. Migrate it to the full order when that file is next changed; do not copy the target
-shape into code that still lacks the dependencies.
 
 ## 5. Global error handling
 
@@ -249,11 +240,14 @@ export class AppError extends Error {
 | `NotFoundError` | `404` | `NOT_FOUND` | Missing resource or non-member workspace |
 | `ConflictError` | `409` | `CONFLICT` | Duplicate or invalid state transition; pass a resource-specific code |
 | `UnprocessableEntityError` | `422` | `VALIDATION_ERROR` | Semantically invalid input or unavailable action |
+| `TooManyRequestsError` | `429` | `RATE_LIMITED` | Route rate limit or resend/reset cooldown exceeded |
 
-Each subclass sets its status and default code, then passes any resource-specific code, details, or
-cause to `super`. The safe `message` is for server-side logs. The client envelope contains only `code` and optional
+Each subclass shares the uniform `(message, code, details, options)` parameter order, sets its status
+and default code, and passes overrides to `super`. The safe `message` is for server-side logs. The client envelope contains only `code` and optional
 `details`, matching the [API outline](../api/api-design-outline.md). A resource that needs another code,
-such as `DUPLICATE_NAME` or `ACTION_UNAVAILABLE`, passes it explicitly to the subclass.
+such as `DUPLICATE_NAME` or `ACTION_UNAVAILABLE`, passes it explicitly to the subclass. Services handling
+specific SQLSTATE races (such as `23505` unique violations) reuse `extractPgCode` and `PG_ERROR_CODES`
+from `src/errors/error-normalizer.ts`.
 
 ### Central normalization
 
@@ -264,12 +258,12 @@ The error handler maps expected failure classes before falling back to `INTERNAL
 | `ZodError` | `422` | `VALIDATION_ERROR` | Details use `{ field, code, params? }` from `issues` |
 | Body-parser `SyntaxError` (`entity.parse.failed`) | `400` | `MALFORMED_REQUEST` | Malformed JSON body |
 | Body-parser `entity.too.large` | `413` | `PAYLOAD_TOO_LARGE` | Body limit exceeded |
-| Malformed or invalid JWT | `401` | `UNAUTHENTICATED` | Normalize by error name; auth package is not installed yet |
+| Malformed or invalid JWT (`jose`) | `401` | `UNAUTHENTICATED` | Normalized by `jose` error name in `error-normalizer.ts` |
 | Expired access token | `401` | `UNAUTHENTICATED` | Re-authenticate or refresh |
 | Expired or invalid refresh session | `401` | `SESSION_EXPIRED` | Auth refresh flow owns the decision |
 | PostgreSQL `23505` | `409` | resource-specific or `CONFLICT` | Duplicate key; prefer a deliberate field-level code |
 | PostgreSQL `23503` | `422` or `409` | `VALIDATION_ERROR` or resource-specific | Missing reference is `422`; delete blocked by dependants is `409` |
-| PostgreSQL `22P02` | `422` | `VALIDATION_ERROR` | Invalid path, query, or body representation |
+| PostgreSQL `22P02` / `22003` | `422` | `VALIDATION_ERROR` | Invalid representation or numeric out-of-range (e.g., `int4` overflow) |
 | PostgreSQL `23514` | `422` | `VALIDATION_ERROR` | Check constraint violation |
 | PostgreSQL `40001` / `40P01` | `503` | `UPSTREAM_UNAVAILABLE` | Retry serialization/deadlock at the transaction boundary, then report storage unavailable with `details: [{ service: "storage" }]` |
 | Unknown error | `500` | `INTERNAL_ERROR` | `isOperational = false`; alert on these |
@@ -307,10 +301,41 @@ Express-specific mechanics:
   provider tokens. Map rows to camelCase client DTOs at the module boundary; AI Service payloads follow
   the [AI Service contract](../ai-service-integration/ai-service-contract.md).
 - Keep generated specs synchronized: client routes belong in
-  [openapi.client.yaml](../api/openapi.client.yaml); internal and AI-webhook routes belong in
+  [openapi.client.yaml](../api/openapi.client.yaml) (generated from Zod 4 schemas via
+  `npm run openapi:generate --prefix api` and checked with `npm run openapi:check --prefix api`);
+  internal and AI-webhook routes belong in
   [openapi.internal.yaml](../api/openapi.internal.yaml). ADR-0004 supersedes the embedded MCP surface;
-  do not document MCP routes unless a new decision restores it. Update the operation, schemas, response
-  envelopes, and common errors in the same change, then validate both specifications.
+  do not document MCP routes unless a new decision restores it.
+
+### OpenAPI generation flow (frontend-ready contract)
+
+Never hand-edit `docs/api/openapi.client.yaml` (or `openapi.internal.yaml`). When adding or modifying
+any route or Zod schema:
+
+1. **Register the operation in `api/scripts/generate-openapi.ts`** (and mirror the same pattern for
+   `openapi.internal.yaml` once `/internal` or `/webhooks/ai` routes are implemented).
+2. **Import the live Zod 4 schemas** via `zodToOpenApiSchema(...)` so field types, string bounds,
+   patterns, and required keys never drift from runtime validation.
+3. **Make every endpoint frontend- and Apidog-ready** (`docs/api/openapi.client.yaml` is imported
+   into **Apidog** for frontend/QA testing and contract sync):
+   - Assign a resource-grouped tag (`Auth`, `Workspaces`, `Agents`, etc. — maps to Apidog folders),
+     a concise `summary` (sidebar title), and a **stable** camelCase `operationId` (never rename an
+     existing `operationId` casually, as Apidog uses it to match endpoints on re-import).
+   - Keep a valid full dev URL in `servers` (e.g., `http://localhost:3000/api/v1`) so requests work
+     out of the box in Apidog.
+   - Declare exact `security` (`userAccessToken`, `refreshToken`, or public) plus path/query params
+     and response headers (such as `Set-Cookie`).
+   - Include complete, realistic request and response `example` payloads for every `200`/`201`
+     response, and clear descriptions for `202`/`204` responses.
+   - Attach reusable common error responses (`400`, `401`, `413`, `422`, `500`, `429`), **and** add
+     named `examples` for every workflow-specific `error.code` (e.g., `EMAIL_ALREADY_EXISTS`,
+     `EMAIL_NOT_VERIFIED`, `INVALID_RESET_CODE`, `NOT_FOUND` resource details — rendered as named
+     response tabs in Apidog).
+   - Keep `components.schemas` error-detail enums up to date (`ValidationDetail.code` lists every
+     `details[].code` emitted by `error-normalizer.ts`, `NotFoundDetail.resource` lists every
+     `NOT_FOUND` resource) and use `VALIDATION_ERROR` (not custom root codes) for Zod field rules.
+4. **Regenerate and verify zero drift:** run `npm run openapi:generate --prefix api` followed by
+   `npm run openapi:check --prefix api` before committing.
 
 ## 7. Validation, configuration, logging, tenancy, and Drizzle
 
@@ -323,9 +348,9 @@ accepting them. A validation failure throws `UnprocessableEntityError` with `VAL
 
 ### Configuration and Infisical
 
-Read runtime configuration only through [api/src/config/env.ts](../../api/src/config/env.ts). ESLint
+Read runtime configuration only through [api/src/config/env.ts](../../api/src/config/env.ts) (`loadEnv()` called at startup in `server.ts`; no top-level `await` at import time). ESLint
 forbids `process.env` in `api/src/**`; the only exemptions are the bootstrap files `config/env.ts` and
-`integrations/infisical/fetch-secrets.ts`. Add new runtime variables to the Zod schema and the
+`infra/infisical/fetch-secrets.ts`. Add new runtime variables to the Zod schema and the
 Infisical environment; add only bootstrap variables to `api/.env.example`. Fail fast at startup when a
 required variable is missing. Infisical holds runtime values; `NODE_ENV` and the `INFISICAL_*`
 bootstrap credentials are the only values read directly from `process.env` in `api/src`. Never log,
@@ -378,21 +403,15 @@ Only [api/src/server.ts](../../api/src/server.ts) owns process lifecycle:
 5. If operational probes are defined, expose `/ready` with a short database check and keep `/health`
    independent of the database; the product health route remains `/api/v1/health`.
 
-The current server calls `listen()` only and has no readiness or shutdown handling. Add those pieces
-when the server is next changed, and test the factory without starting a listener.
+[api/src/server.ts](../../api/src/server.ts) implements startup `SELECT 1` readiness, idempotent
+`SIGTERM`/`SIGINT` shutdown (`server.closeIdleConnections()` + `closeDatabase()`), and fatal
+handlers. Always test `createApp()` without starting a listener.
 
 ## 9. Testing
 
-- **Unit tests (Vitest):** services with fake repositories, validation schemas, DTO mappers, and error
-  normalization. Assert the `AppError` code/status/details, not implementation details.
-- **Integration tests (Supertest):** import `createApp()` and send requests without `listen()`. Cover
-  success envelopes, `201`/`204`/`202`, malformed JSON, validation `422`, `404`, `409`, `429`, and an
-  unexpected `500` that does not leak a stack or SQL. Inject config and database fakes so unit and
-  most integration tests do not need Infisical.
-- **Database integration tests:** use an isolated test database or roll back transactions. Never point
-  tests at a shared production database. Test workspace scoping with a non-member request.
-- **Current limitation:** the existing health test imports the app, which imports Infisical
-  configuration. Keep that limitation explicit until `createApp()` accepts injectable dependencies.
+- **Unit & service tests (Vitest + PGlite):** test validation schemas, DTO mappers, error normalization, crypto utilities, and services directly against real in-memory PostgreSQL via `createTestRuntime()` in `api/tests/helpers/test-runtime.ts` (`@electric-sql/pglite` + real Drizzle migrations, resetting with `TRUNCATE ... CASCADE` in `beforeEach`). Do not write fake `InMemory*Repository` clones.
+- **Integration tests (Supertest):** import `createApp()` and send requests without `listen()`. Cover success envelopes, `201`/`204`/`202`, malformed JSON, `413`, validation `422`, `401`/`403`/`404`, `429`, and an unexpected `500` that does not leak a stack or SQL.
+- **No Infisical credentials required for tests:** `initTestConfig()` and `createTestRuntime()` initialize test config, silent Pino logger, PGlite database, and `FakeEmailSender` so the entire `npm test --prefix api` suite runs offline and fast.
 
 ## 10. Enforcement and review checklist
 
@@ -409,10 +428,11 @@ Before review, confirm:
 - The service does not import Express or use `req`/`res`.
 - Async handlers rely on native rejection forwarding; there is no `asyncHandler` or redundant
   `next(err)` catch.
-- Query input is read from `res.locals.validated`, not reassigned onto `req.query`.
+- Query, body, and param input are read via `getValidated(res)` (never reassign `req.query`), and auth context via `getAuthUser(res)`.
+- Routes, controllers, services, and repositories are plain exported functions with zero `deps` threading or repository wrapper classes.
 - Every error path produces the shared `{ error: { code, details? } }` envelope and the correct status.
 - Logs contain request ID, status, and code, but no secrets, request bodies, or raw SQL.
-- Tests exercise behavior and the error envelope, not only the happy path.
+- Tests run against PGlite (`createTestRuntime()`) rather than fake repositories, and `npm run openapi:check --prefix api` passes.
 
 When a rule changes, update `api/eslint.config.mjs`, this page, and the `express-api` skill in the
 same change.

@@ -13,6 +13,7 @@ Use an issue identifier when the user supplies one; otherwise choose a short des
 
 - Create work docs for feature-sized, multi-file, or risky changes. Skip them for routine, low-risk edits.
 - Keep the brief, plan, and evidence together. Do not create per-type folders, generic notes folders, or archives.
+- Make `plan.md` self-contained (golden blueprint to imitate, exact HTTP/data contracts, transaction invariants, affected files, PGlite test matrix, OpenAPI `operationId`s, and atomic commit slices) so a separate or smaller agent with fresh context can implement it mechanically without relying on chat history or external artifacts.
 - ADRs stay in docs/adr/.
 - Use Draft → Planned → In Progress → Done; record a blocking decision as Awaiting input.
 - A plan organizes already authorized work. Ask only about material unresolved decisions or actions that need explicit authorization.

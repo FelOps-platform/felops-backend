@@ -1,6 +1,6 @@
 # FelOps Backend documentation
 
-This directory is the source of truth for the planned Backend API, data model, and product workflows. Current runtime scope is described in [project-context.md](project-context.md); only `GET /api/v1/health` is implemented.
+This directory is the source of truth for the Backend API, data model, and product workflows. Current runtime scope is tracked in [project-context.md](project-context.md) (`health`, `auth`, and owner-scoped `workspaces` are implemented; other workflows remain planned).
 
 ## Start here
 
@@ -44,10 +44,10 @@ docs/
 
 ## API specifications
 
-`api/api-design-outline.md` holds the API organization, shared formatting, and common errors. Low-level OpenAPI files are generated after implementation:
+`api/api-design-outline.md` holds the API organization, shared formatting, and common errors. Low-level OpenAPI specs are generated from Zod 4 schemas via `npm run openapi:generate --prefix api` (never hand-edited):
 
-- `api/openapi.client.yaml`
-- `api/openapi.internal.yaml`
+- `api/openapi.client.yaml` (generated for implemented client routes; imported into Apidog)
+- `api/openapi.internal.yaml` (placeholder until internal/AI-webhook routes are implemented)
 
 ## Documentation rules
 

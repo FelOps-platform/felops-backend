@@ -1,14 +1,14 @@
 # FelOps Backend
 
-Backend API for FelOps. The current implementation is a TypeScript and Express scaffold: the only product route is `GET /api/v1/health`. Product workflows are documented as planned behavior, not implemented endpoints.
+Backend API for FelOps (TypeScript + Express 5). Implemented routes cover `GET /api/v1/health`, authentication (`/api/v1/auth/*`), and owner-scoped workspaces (`/api/v1/workspaces/*`); other product workflows in `docs/` remain planned.
 
 ## Requirements
 
 - Node.js and npm
-- Infisical bootstrap credentials for application startup and the test suite
-- PostgreSQL when running database-backed behavior
+- Infisical bootstrap credentials for live server startup (tests run offline via in-memory `@electric-sql/pglite`)
+- PostgreSQL when running the live server or migrations
 
-The repository does not include credentials or deployment configuration. Do not request access to a shared vault just to run documentation checks.
+The repository does not include credentials or deployment configuration. Do not request access to a shared vault just to run tests or documentation checks.
 
 ## Setup and commands
 
@@ -16,9 +16,9 @@ The repository does not include credentials or deployment configuration. Do not 
 npm ci --prefix api --ignore-scripts
 ```
 
-`--ignore-scripts` installs dependencies without changing local Git hook configuration. Runtime configuration is documented in [api/.env.example](api/.env.example). The command table (lint, typecheck, build, test, and the credential-free repository checks) is in [AGENTS.md](AGENTS.md#commands).
+`--ignore-scripts` installs dependencies without changing local Git hook configuration. Bootstrap env vars are listed in [api/.env.example](api/.env.example). The command table (lint, typecheck, build, OpenAPI generate/check, PGlite tests, and docs/harness checks) is in [AGENTS.md](AGENTS.md#commands).
 
-Startup and the existing health test import Infisical configuration. They require bootstrap credentials and may fail before application tests run when those credentials are unavailable.
+Live server startup (`npm run dev --prefix api`) requires Infisical bootstrap credentials; `npm test --prefix api` runs offline against PGlite with real Drizzle migrations.
 
 ## Repository layout
 
