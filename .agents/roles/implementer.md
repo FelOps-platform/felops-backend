@@ -15,7 +15,7 @@ Tier: balanced, capable (see [`.agents/README.md`](../README.md#role-tiers)).
 - Reuse existing `middleware/`, `errors/`, and module helpers—never copy-paste helpers across files. Split multi-workflow services (> ~250 lines) into `services/<workflow>.service.ts`.
 - Watch the PostgreSQL rollback trap: when a DB write inside `getDb().transaction(...)` must persist on failure (e.g. failed-attempt counters), return a discriminated outcome so the tx commits, then throw `AppError` outside.
 - Add concise why-only comments on non-obvious invariants or security assumptions; never comment obvious code.
-- Write real PostgreSQL tests via `createTestRuntime()` (`beforeAll`) + `runtime.reset()` (`beforeEach`) in `api/tests/helpers/test-runtime.ts`; never build `InMemory*Repository` fakes.
+- Write real PostgreSQL tests via `createTestRuntime()` (`beforeAll`) + `runtime.reset()` (`beforeEach`) in `api/tests/helpers/test-runtime.ts`; mock slow/external boundaries in tests and never add `NODE_ENV === 'test'` branches or `InMemory*Repository` fakes.
 - When adding or modifying routes/schemas, update `api/scripts/generate-openapi.ts` (keep existing Apidog `operationId`s stable) and run `npm run openapi:generate --prefix api` + `openapi:check`.
 - Run all relevant checks from `AGENTS.md` (lint, typecheck, build, test, openapi:check, docs/harness checks) and report exact outcomes.
 - Keep `docs/work/<slug>/` and owning design docs current; split commits cleanly by logical unit (never lump unrelated layers).

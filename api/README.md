@@ -12,7 +12,7 @@ From the repository root, install dependencies without running lifecycle scripts
 npm ci --prefix api --ignore-scripts
 ```
 
-Server startup loads runtime secrets from Infisical via `loadEnv()` using `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` (`.env.example` lists bootstrap variable names; never commit credentials). Runtime secrets validated in `src/config/env.ts` include `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `SENDGRID_API_KEY`, `EMAIL_FROM`, and optional `COOKIE_SECURE`.
+Server startup loads runtime secrets from Infisical via `loadEnv()` using `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` (`.env.example` lists bootstrap variable names; never commit credentials). Runtime secrets validated in `src/config/env.ts` include `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, and optional `COOKIE_SECURE`.
 
 The install command skips Husky setup and does not configure Git's local `core.hooksPath`. Run checks explicitly.
 
@@ -23,7 +23,7 @@ The command table is in [AGENTS.md](../AGENTS.md#commands); start the dev server
 ## Request lifecycle
 
 ```text
-server.ts (loadEnv → initLogger → initDatabase → initEmailSender → listen)
+server.ts (loadEnv → initLogger → initDatabase → listen)
   └─ app.ts (trust proxy → requestId → httpLogger → helmet → cors → cookieParser → json 100kb)
        ├─ GET /api/v1/health
        └─ routes.ts (/api/v1)
@@ -40,7 +40,7 @@ server.ts (loadEnv → initLogger → initDatabase → initEmailSender → liste
 - `src/app.ts`, `src/routes.ts`, and `src/server.ts`: pure `createApp()` factory, `/api/v1` router mount, and process bootstrap (DB readiness, graceful shutdown, fatal handlers).
 - `src/errors/` and `src/middleware/`: `AppError` hierarchy, central error normalizer, request ID, Zod validation (`validate` / `getValidated`), bearer authentication (`authenticate` / `getAuthUser`), `express-rate-limit` wrapper, and 404/error handlers.
 - `src/modules/auth/` and `src/modules/workspaces/`: plain-function golden blueprints — `workspaces/` (3 owner-scoped endpoints, minimal CRUD+auth) and `auth/` (9 endpoints across workflow-split services + transactions).
-- `src/config/` and `src/infra/`: runtime configuration (`loadEnv()`/`getConfig()`), database lifecycle (`initDatabase()`/`getDb()`), Pino logging with redaction, Infisical secret retrieval, and SendGrid email adapter.
+- `src/config/` and `src/infra/`: runtime configuration (`loadEnv()`/`getConfig()`), database lifecycle (`initDatabase()`/`getDb()`), Pino logging with redaction, Infisical secret retrieval, and Nodemailer SMTP email sender.
 - `src/database/schema.ts` and `drizzle/`: Drizzle schema and migrations.
 - `tests/`: credential-free unit and Supertest integration test suite.
 

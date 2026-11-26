@@ -2,7 +2,7 @@
 
 TypeScript/Express API in `api/` (ESM, NodeNext). Implemented endpoints cover `GET /api/v1/health`, Auth (`/api/v1/auth/*`), and owner-scoped Workspaces (`/api/v1/workspaces/*`); other product workflows in `docs/` remain planned. Treat unverified facts as Unknown.
 
-Stack: Express 5, TypeScript 7 (temporary TS 6 compat dep), Zod 4, Drizzle ORM, `pg`/PostgreSQL, Pino, Vitest 5 + `@electric-sql/pglite`, Argon2id, `jose`, SendGrid, Infisical runtime secrets.
+Stack: Express 5, TypeScript 7 (temporary TS 6 compat dep), Zod 4, Drizzle ORM, `pg`/PostgreSQL, Pino, Vitest 5 + `@electric-sql/pglite`, Argon2id, `jose`, Nodemailer (SMTP), Infisical runtime secrets.
 
 ## Commands
 

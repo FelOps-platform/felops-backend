@@ -13,7 +13,7 @@ Tier: balanced by default; escalate only for demonstrated difficult issues (see 
   - Plain exported functions across routes/controllers/services/repos—flag manual `deps` threading, router factories, or duplicate repository wrapper classes.
   - Zero copy-pasted helpers across modules; controllers use `getValidated(res)`/`getAuthUser(res)` instead of raw `res.locals` casts; 2+ same-type primitive args use object params.
   - Internal clients live in `api/src/infra/` (not `integrations/`); multi-workflow services (> ~250 lines) split cleanly; no import-time network/DB I/O; why-only comments on non-obvious invariants.
-- **Tests:** verify real behavior against PGlite (`createTestRuntime()`) rather than `InMemory*Repository` fakes; cover error envelopes and tenant `404` isolation. Run tests/checks when possible.
+- **Tests & clean production code:** verify real behavior against PGlite (`createTestRuntime()`) rather than `InMemory*Repository` fakes; flag any `NODE_ENV === 'test'` branches or test-only options inside `api/src/`. Cover error envelopes and tenant `404` isolation, and run checks when possible.
 - **Safety:** no secrets, destructive ops, PII/raw SQL in logs, weakened auth/authz, or enumeration leaks.
 - **OpenAPI & docs sync:** route/schema changes update `api/scripts/generate-openapi.ts`, preserve existing Apidog `operationId`s, and pass `npm run openapi:check --prefix api`. Significant changes update `docs/work/<slug>/` and owning docs (`bash bin/check-backend-docs.sh`). Missing docs or stale OpenAPI is a major finding.
 

@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import argon2 from 'argon2';
 import { SignJWT, jwtVerify } from 'jose';
+import type { JWTPayload } from 'jose';
 import { getConfig } from '../../config/env.js';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
@@ -28,14 +29,9 @@ const JWT_ALGORITHM = 'HS256';
 const REFRESH_SECRET_BYTES = 32;
 const MAX_SESSION_ID_LENGTH = 36;
 const TEXT_ENCODER = new TextEncoder();
-const TEST_ARGON2_OPTIONS = { memoryCost: 1024, timeCost: 1, parallelism: 1 };
 
 export async function hashPassword(password: string): Promise<string> {
-  const isTest = getConfig().NODE_ENV === 'test';
-  return argon2.hash(password, {
-    type: argon2.argon2id,
-    ...(isTest ? TEST_ARGON2_OPTIONS : {}),
-  });
+  return argon2.hash(password, { type: argon2.argon2id });
 }
 
 export async function verifyPassword(input: { hash: string; password: string }): Promise<boolean> {
@@ -102,11 +98,14 @@ export async function signAccessToken(payload: AccessTokenPayload): Promise<stri
 }
 
 export async function verifyAccessToken(token: string): Promise<AccessTokenPayload> {
-  const secretKey = TEXT_ENCODER.encode(getConfig().JWT_ACCESS_SECRET);
-  const { payload } = await jwtVerify(token, secretKey, { algorithms: [JWT_ALGORITHM] });
-  const userId = Number(payload.sub);
+  const { userId, payload } = await verifyJwt({
+    token,
+    secret: getConfig().JWT_ACCESS_SECRET,
+    expectedType: 'access',
+    errorMessage: 'Invalid access token claims',
+  });
   const sessionId = typeof payload.sid === 'string' ? payload.sid : '';
-  if (!Number.isInteger(userId) || userId <= 0 || !sessionId || payload.typ !== 'access') {
+  if (!sessionId) {
     throw createJwtInvalidError('Invalid access token claims');
   }
   return { userId, sessionId };
@@ -124,20 +123,32 @@ export async function signResetToken(payload: ResetTokenPayload): Promise<string
 }
 
 export async function verifyResetToken(token: string): Promise<ResetTokenPayload> {
-  const secretKey = TEXT_ENCODER.encode(getConfig().JWT_RESET_SECRET);
-  const { payload } = await jwtVerify(token, secretKey, { algorithms: [JWT_ALGORITHM] });
-  const userId = Number(payload.sub);
+  const { userId, payload } = await verifyJwt({
+    token,
+    secret: getConfig().JWT_RESET_SECRET,
+    expectedType: 'password_reset',
+    errorMessage: 'Invalid reset token claims',
+  });
   const authCodeId = Number(payload.jti);
-  if (
-    !Number.isInteger(userId) ||
-    userId <= 0 ||
-    !Number.isInteger(authCodeId) ||
-    authCodeId <= 0 ||
-    payload.typ !== 'password_reset'
-  ) {
+  if (!Number.isInteger(authCodeId) || authCodeId <= 0) {
     throw createJwtInvalidError('Invalid reset token claims');
   }
   return { userId, authCodeId };
+}
+
+async function verifyJwt(input: {
+  token: string;
+  secret: string;
+  expectedType: string;
+  errorMessage: string;
+}): Promise<{ userId: number; payload: JWTPayload }> {
+  const secretKey = TEXT_ENCODER.encode(input.secret);
+  const { payload } = await jwtVerify(input.token, secretKey, { algorithms: [JWT_ALGORITHM] });
+  const userId = Number(payload.sub);
+  if (!Number.isInteger(userId) || userId <= 0 || payload.typ !== input.expectedType) {
+    throw createJwtInvalidError(input.errorMessage);
+  }
+  return { userId, payload };
 }
 
 function createJwtInvalidError(message: string): Error {

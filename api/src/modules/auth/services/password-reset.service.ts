@@ -1,6 +1,6 @@
 import { getDb } from '../../../config/db.js';
 import { NotFoundError, UnprocessableEntityError } from '../../../errors/app-error.js';
-import { getEmailSender } from '../../../infra/email/email-sender.js';
+import { sendPasswordResetCode } from '../../../infra/email/email-sender.js';
 import {
   AUTH_CODE_MAX_ATTEMPTS,
   AUTH_CODE_PURPOSE,
@@ -50,7 +50,7 @@ export async function requestPasswordReset(input: {
   );
 
   await sendEmailSafely('password_reset', () =>
-    getEmailSender().sendPasswordResetCode({
+    sendPasswordResetCode({
       to: email,
       code,
       expiresInMinutes: AUTH_CODE_TTL_MINUTES,

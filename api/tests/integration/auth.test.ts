@@ -1,12 +1,24 @@
 import express from 'express';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '@/app.js';
 import { authenticate } from '@/middleware/authenticate.js';
 import { AUTH_ERROR_CODES, REFRESH_COOKIE_NAME } from '@/modules/auth/auth.constants.js';
 import { authRouter } from '@/modules/auth/auth.routes.js';
+import type * as AuthCrypto from '@/modules/auth/auth.crypto.js';
 import { createTestRuntime } from '../helpers/test-runtime.js';
-import type { FakeEmailSender, TestRuntime } from '../helpers/test-runtime.js';
+import type { RecordedEmailSender, TestRuntime } from '../helpers/test-runtime.js';
+
+vi.mock('@/infra/email/email-sender.js');
+vi.mock('@/modules/auth/auth.crypto.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof AuthCrypto>();
+  return {
+    ...actual,
+    hashPassword: async (password: string) => `mock-hash:${password}`,
+    verifyPassword: async (input: { hash: string; password: string }) =>
+      input.hash === `mock-hash:${input.password}`,
+  };
+});
 
 function extractCookieHeader(setCookie: string[] | string | undefined): string {
   const list = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
@@ -19,7 +31,7 @@ function extractCookieHeader(setCookie: string[] | string | undefined): string {
 
 describe('Auth HTTP integration (/api/v1/auth)', () => {
   let runtime: TestRuntime;
-  let emailSender: FakeEmailSender;
+  let emailSender: RecordedEmailSender;
   let app: express.Express;
 
   beforeAll(async () => {

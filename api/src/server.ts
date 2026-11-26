@@ -2,8 +2,6 @@ import { createApp } from './app.js';
 import { closeDatabase, initDatabase } from './config/db.js';
 import { loadEnv } from './config/env.js';
 import { initLogger } from './config/logger.js';
-import { initEmailSender } from './infra/email/email-sender.js';
-import { SendGridEmailSender } from './infra/email/sendgrid-email-sender.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -23,13 +21,6 @@ async function start(): Promise<void> {
 
   const { pool } = initDatabase(config.DATABASE_URL);
   await pool.query('SELECT 1');
-
-  initEmailSender(
-    new SendGridEmailSender({
-      apiKey: config.SENDGRID_API_KEY,
-      from: config.EMAIL_FROM,
-    }),
-  );
 
   const app = createApp();
   const server = app.listen(config.PORT, () => {

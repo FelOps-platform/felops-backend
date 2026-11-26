@@ -17,7 +17,7 @@ This page adds Express-specific mechanics and does not restate those owners.
 | HTTP & security | Express `^5.2.1`, `helmet`, `cors`, `cookie-parser`, `express-rate-limit` | [api/package.json](../../api/package.json) |
 | Language and modules | TypeScript 7 ESM, `NodeNext`, `strict` (temp TS 6 compat dep) | [api/tsconfig.json](../../api/tsconfig.json) |
 | Validation & OpenAPI | Zod `^4.6.5` (`z.toJSONSchema()` + `yaml` in `scripts/generate-openapi.ts`) | [api/package.json](../../api/package.json) |
-| Auth & email | `argon2`, `jose`, `@sendgrid/mail` | [api/package.json](../../api/package.json) |
+| Auth & email | `argon2`, `jose`, `nodemailer` | [api/package.json](../../api/package.json) |
 | Logging | Pino `^10.4.0`, `pino-http ^11.0.0` (with header/secret redaction) | [api/src/config/logger.ts](../../api/src/config/logger.ts) |
 | Data | Drizzle ORM `^1.0.0-rc.4`, `pg ^8.23.1` | [api/package.json](../../api/package.json) |
 | Tests | Vitest `^5.0.3`, Supertest `^7.3.1`, `@electric-sql/pglite` (in-memory Postgres) | [api/package.json](../../api/package.json) |
@@ -75,7 +75,7 @@ in emitted JavaScript. Verify runtime resolution before using `@/*` in `api/src`
 | --- | --- | --- |
 | `app.ts` | A pure `createApp()` factory that composes global middleware and routers and returns the app | `listen()`, process signals, Infisical login, database readiness |
 | `routes.ts` | Composing `/api/v1` module routers (auth, workspaces, future domains) so `server.ts` stays concise | Business rules, `listen()`, process signals |
-| `server.ts` | Calling `loadEnv()`, `initLogger()`, `initDatabase()`, `initEmailSender()`, confirming DB readiness (`SELECT 1`), calling `listen()`, handling signals and fatal errors | Route definitions, business logic, test imports |
+| `server.ts` | Calling `loadEnv()`, `initLogger()`, `initDatabase()`, confirming DB readiness (`SELECT 1`), calling `listen()`, handling signals and fatal errors | Route definitions, business logic, test imports |
 
 Tests import `createApp()` (never `server.ts`) after calling `initTestConfig()` or
 `createTestRuntime()`, so unit and HTTP integration tests run offline without Infisical credentials.
@@ -411,7 +411,7 @@ handlers. Always test `createApp()` without starting a listener.
 
 - **Unit & service tests (Vitest + PGlite):** test validation schemas, DTO mappers, error normalization, crypto utilities, and services directly against real in-memory PostgreSQL via `createTestRuntime()` in `api/tests/helpers/test-runtime.ts` (`@electric-sql/pglite` + real Drizzle migrations, resetting with `TRUNCATE ... CASCADE` in `beforeEach`). Do not write fake `InMemory*Repository` clones.
 - **Integration tests (Supertest):** import `createApp()` and send requests without `listen()`. Cover success envelopes, `201`/`204`/`202`, malformed JSON, `413`, validation `422`, `401`/`403`/`404`, `429`, and an unexpected `500` that does not leak a stack or SQL.
-- **No Infisical credentials required for tests:** `initTestConfig()` and `createTestRuntime()` initialize test config, silent Pino logger, PGlite database, and `FakeEmailSender` so the entire `npm test --prefix api` suite runs offline and fast.
+- **No Infisical credentials required for tests:** `initTestConfig()` and `createTestRuntime()` initialize test config, silent Pino logger, PGlite database, and a mocked `email-sender` recorder so the entire `npm test --prefix api` suite runs offline and fast.
 
 ## 10. Enforcement and review checklist
 

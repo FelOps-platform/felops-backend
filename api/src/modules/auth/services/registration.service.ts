@@ -5,7 +5,7 @@ import {
   UnprocessableEntityError,
 } from '../../../errors/app-error.js';
 import { extractPgCode, PG_ERROR_CODES } from '../../../errors/error-normalizer.js';
-import { getEmailSender } from '../../../infra/email/email-sender.js';
+import { sendVerificationCode } from '../../../infra/email/email-sender.js';
 import {
   AUTH_CODE_PURPOSE,
   AUTH_CODE_TTL_MINUTES,
@@ -82,7 +82,7 @@ export async function signUp(input: {
   }
 
   await sendEmailSafely('sign_up_verification', () =>
-    getEmailSender().sendVerificationCode({
+    sendVerificationCode({
       to: email,
       code,
       expiresInMinutes: AUTH_CODE_TTL_MINUTES,
@@ -174,7 +174,7 @@ export async function resendVerification(input: {
   );
 
   await sendEmailSafely('resend_verification', () =>
-    getEmailSender().sendVerificationCode({
+    sendVerificationCode({
       to: email,
       code,
       expiresInMinutes: AUTH_CODE_TTL_MINUTES,

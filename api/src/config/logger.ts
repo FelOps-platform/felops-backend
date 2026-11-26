@@ -19,8 +19,8 @@ const REDACT_PATHS = [
 
 let currentLogger: Logger = pino({ enabled: false });
 
-export function createLogger(config: Pick<EnvConfig, 'LOG_LEVEL' | 'NODE_ENV'>): Logger {
-  return pino({
+export function initLogger(config: Pick<EnvConfig, 'LOG_LEVEL' | 'NODE_ENV'>): Logger {
+  currentLogger = pino({
     level: config.LOG_LEVEL,
     redact: {
       paths: REDACT_PATHS,
@@ -38,15 +38,7 @@ export function createLogger(config: Pick<EnvConfig, 'LOG_LEVEL' | 'NODE_ENV'>):
       },
     }),
   });
-}
-
-export function initLogger(config: Pick<EnvConfig, 'LOG_LEVEL' | 'NODE_ENV'>): Logger {
-  currentLogger = createLogger(config);
   return currentLogger;
-}
-
-export function setLogger(logger: Logger): void {
-  currentLogger = logger;
 }
 
 export function getLogger(): Logger {
@@ -57,6 +49,8 @@ export function createHttpLogger(logger: Logger) {
   return pinoHttp({
     logger,
     genReqId: (req) => req.id,
+    // Keep error-handler.ts as the single log for failed requests; it carries the domain code.
+    customLogLevel: (_req, res) => (res.statusCode >= 400 ? 'silent' : 'info'),
     serializers: {
       req: (req) => ({
         id: req.id,

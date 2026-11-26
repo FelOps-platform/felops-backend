@@ -1,32 +1,49 @@
-import { describe, expect, it, vi } from 'vitest';
-import { SendGridEmailSender } from '@/infra/email/sendgrid-email-sender.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { initTestConfig } from '../helpers/test-runtime.js';
 
-describe('SendGridEmailSender', () => {
-  it('configures API key and sends verification and password-reset emails', async () => {
-    const setApiKey = vi.fn();
-    const send = vi.fn().mockResolvedValue([{ statusCode: 202 }]);
+const { sendMail, createTransport } = vi.hoisted(() => {
+  const sendMail = vi.fn().mockResolvedValue({ messageId: 'msg-1' });
+  const createTransport = vi.fn(() => ({ sendMail }));
+  return { sendMail, createTransport };
+});
 
-    const sender = new SendGridEmailSender({
-      apiKey: 'SG.test-key',
-      from: 'noreply@felops.test',
-      client: { setApiKey, send },
-    });
+vi.mock('nodemailer', () => ({
+  default: { createTransport },
+}));
 
-    expect(setApiKey).toHaveBeenCalledWith('SG.test-key');
+describe('email-sender', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    initTestConfig();
+  });
 
-    await sender.sendVerificationCode({
+  it('creates an SMTP transporter from config and sends verification and password-reset emails', async () => {
+    const { sendVerificationCode, sendPasswordResetCode } =
+      await import('@/infra/email/email-sender.js');
+
+    await sendVerificationCode({
       to: 'hana@acm.com',
       code: '123456',
       expiresInMinutes: 10,
     });
-    await sender.sendPasswordResetCode({
+    await sendPasswordResetCode({
       to: 'hana@acm.com',
       code: '654321',
       expiresInMinutes: 10,
     });
 
-    expect(send).toHaveBeenCalledTimes(2);
-    expect(send).toHaveBeenNthCalledWith(
+    expect(createTransport).toHaveBeenCalledTimes(1);
+    expect(createTransport).toHaveBeenCalledWith({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: 'noreply@felops.test',
+        pass: 'test-app-password',
+      },
+    });
+    expect(sendMail).toHaveBeenCalledTimes(2);
+    expect(sendMail).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         to: 'hana@acm.com',
@@ -34,7 +51,7 @@ describe('SendGridEmailSender', () => {
         text: expect.stringContaining('123456'),
       }),
     );
-    expect(send).toHaveBeenNthCalledWith(
+    expect(sendMail).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         to: 'hana@acm.com',

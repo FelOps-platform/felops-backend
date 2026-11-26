@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { fetchSecrets } from '../infra/infisical/fetch-secrets.js';
 
 export const ALLOWED_NODE_ENVS = ['development', 'production', 'test'] as const;
-export const ALLOWED_LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'trace'] as const;
+export const ALLOWED_LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'trace', 'silent'] as const;
 
 const trustProxySchema = z
   .union([z.boolean(), z.number().int().min(0), z.string()])
@@ -80,7 +80,10 @@ export const envSchema = z
     JWT_RESET_SECRET: z.string().min(32),
     AUTH_CODE_PEPPER: z.string().min(32),
     REFRESH_TOKEN_PEPPER: z.string().min(32),
-    SENDGRID_API_KEY: z.string().min(1),
+    SMTP_HOST: z.string().trim().min(1),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+    SMTP_USER: z.string().trim().min(1),
+    SMTP_PASS: z.string().min(1),
     EMAIL_FROM: z.email(),
     COOKIE_SECURE: optionalBooleanSchema,
   })
@@ -93,6 +96,7 @@ export type EnvConfig = z.infer<typeof envSchema>;
 
 let currentConfig: EnvConfig | null = null;
 
+// in tests, we want to initialize the config from a known object, not from the environment or secrets manager
 export function initConfig(config: EnvConfig): EnvConfig {
   currentConfig = config;
   return currentConfig;
@@ -106,18 +110,20 @@ export function getConfig(): EnvConfig {
 }
 
 export async function loadEnv(): Promise<EnvConfig> {
-  if (
-    !process.env.NODE_ENV ||
-    !ALLOWED_NODE_ENVS.includes(process.env.NODE_ENV as (typeof ALLOWED_NODE_ENVS)[number])
-  ) {
-    process.env.NODE_ENV = 'development';
+  const nodeEnv = process.env.NODE_ENV;
+  if (!nodeEnv || !ALLOWED_NODE_ENVS.includes(nodeEnv as (typeof ALLOWED_NODE_ENVS)[number])) {
+    throw new Error(
+      `NODE_ENV must be one of: ${ALLOWED_NODE_ENVS.join(', ')} (received ${
+        nodeEnv ? `"${nodeEnv}"` : 'no value'
+      }).`,
+    );
   }
 
   const secrets = await fetchSecrets();
 
   return initConfig(
     envSchema.parse({
-      NODE_ENV: process.env.NODE_ENV,
+      NODE_ENV: nodeEnv,
       ...secrets,
     }),
   );

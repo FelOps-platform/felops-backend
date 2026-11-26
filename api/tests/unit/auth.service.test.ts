@@ -17,12 +17,24 @@ import {
   verifyEmail,
 } from '@/modules/auth/services/registration.service.js';
 import { getCurrentUser, refresh, signIn } from '@/modules/auth/services/session.service.js';
+import type * as AuthCrypto from '@/modules/auth/auth.crypto.js';
 import { createTestRuntime } from '../helpers/test-runtime.js';
-import type { FakeEmailSender, TestRuntime } from '../helpers/test-runtime.js';
+import type { RecordedEmailSender, TestRuntime } from '../helpers/test-runtime.js';
+
+vi.mock('@/infra/email/email-sender.js');
+vi.mock('@/modules/auth/auth.crypto.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof AuthCrypto>();
+  return {
+    ...actual,
+    hashPassword: async (password: string) => `mock-hash:${password}`,
+    verifyPassword: async (input: { hash: string; password: string }) =>
+      input.hash === `mock-hash:${input.password}`,
+  };
+});
 
 describe('auth services (PGlite PostgreSQL)', () => {
   let runtime: TestRuntime;
-  let emailSender: FakeEmailSender;
+  let emailSender: RecordedEmailSender;
 
   beforeAll(async () => {
     runtime = await createTestRuntime();
@@ -239,7 +251,7 @@ describe('auth services (PGlite PostgreSQL)', () => {
 
     const originalSendReset = emailSender.sendPasswordResetCode.bind(emailSender);
     emailSender.sendPasswordResetCode = async () => {
-      throw new Error('SendGrid outage');
+      throw new Error('SMTP outage');
     };
     try {
       await expect(

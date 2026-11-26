@@ -124,7 +124,10 @@ describe('AppError hierarchy and error normalizer', () => {
       JWT_RESET_SECRET: 'b'.repeat(32),
       AUTH_CODE_PEPPER: 'c'.repeat(32),
       REFRESH_TOKEN_PEPPER: 'd'.repeat(32),
-      SENDGRID_API_KEY: 'SG.key',
+      SMTP_HOST: 'smtp.gmail.com',
+      SMTP_PORT: 465,
+      SMTP_USER: 'noreply@felops.dev',
+      SMTP_PASS: 'app-password',
       EMAIL_FROM: 'noreply@felops.dev',
     };
 
