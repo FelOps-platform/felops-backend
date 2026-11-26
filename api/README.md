@@ -18,17 +18,7 @@ The install command skips Husky setup and does not configure Git's local `core.h
 
 ## Commands
 
-Run from the repository root:
-
-```sh
-npm run dev --prefix api
-npm run lint --prefix api
-npm run typecheck --prefix api
-npm run build --prefix api
-npm test --prefix api
-```
-
-The server and tests require Infisical bootstrap credentials; lint, typecheck, and build do not.
+The command table is in [AGENTS.md](../AGENTS.md#commands); start the dev server with `npm run dev --prefix api`. The server and tests require Infisical bootstrap credentials; lint, typecheck, and build do not.
 
 ## Project map
 
@@ -40,6 +30,6 @@ The server and tests require Infisical bootstrap credentials; lint, typecheck, a
 ## Design and contributor docs
 
 - Project: [Documentation entry](../docs/README.md), [Architecture](../docs/architecture.md), [API outline](../docs/api/api-design-outline.md), and [Database schema](../docs/database/schema.dbml).
-- Contributors: [Repository instructions](../AGENTS.md), [Agent onboarding](../docs/onboarding/agent-onboarding.md), [Project context](../docs/project-context.md), and [Verified metadata](../agent-metadata.md).
+- Contributors: [Repository instructions](../AGENTS.md) and [Project context](../docs/project-context.md) (including verified technical state).
 
 Low-level OpenAPI specifications are generated after implementation into `docs/api/openapi.client.yaml` and `docs/api/openapi.internal.yaml`.

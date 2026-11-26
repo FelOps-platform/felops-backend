@@ -1,160 +1,30 @@
 ---
-description: Fresh-eyes review of a diff against the plan and project standards. Use after implementation, before final sign-off. Must be a different agent than the one that wrote the code.
+description: Fresh-eyes review of a diff against the plan and project standards. Use after implementation, before final sign-off; must not be the agent that wrote the code.
 mode: subagent
-permissions:
-  - action: "*"
-    resource: "*"
-    effect: deny
-  - action: read
-    resource: "*"
-    effect: allow
-  - action: read
-    resource: "*.env"
-    effect: ask
-  - action: read
-    resource: "*.env.*"
-    effect: ask
-  - action: read
-    resource: "*.env.example"
-    effect: allow
-  - action: glob
-    resource: "*"
-    effect: allow
-  - action: grep
-    resource: "*"
-    effect: allow
-  - action: shell
-    resource: "*"
-    effect: ask
-  - action: external_directory
-    resource: "*"
-    effect: ask
-  - action: shell
-    resource: "git status *"
-    effect: allow
-  - action: shell
-    resource: "git diff *"
-    effect: allow
-  - action: shell
-    resource: "git log *"
-    effect: allow
-  - action: shell
-    resource: "git show *"
-    effect: allow
-  - action: shell
-    resource: "git rev-parse *"
-    effect: allow
-  - action: shell
-    resource: "git ls-files *"
-    effect: allow
-  - action: shell
-    resource: "git blame *"
-    effect: allow
-  - action: shell
-    resource: "npm test *"
-    effect: allow
-  - action: shell
-    resource: "npm run lint *"
-    effect: allow
-  - action: shell
-    resource: "npm run typecheck *"
-    effect: allow
-  - action: shell
-    resource: "npm run build *"
-    effect: allow
-  - action: shell
-    resource: "npm run format:check *"
-    effect: allow
-  - action: shell
-    resource: "bash bin/check-agent-workflow.sh *"
-    effect: allow
-  - action: shell
-    resource: "bash bin/check-opencode-config.sh *"
-    effect: allow
-  - action: shell
-    resource: "bash bin/diff.sh *"
-    effect: allow
-  - action: shell
-    resource: "node --check *"
-    effect: allow
-  - action: shell
-    resource: "git push *"
-    effect: deny
-  - action: shell
-    resource: "git merge *"
-    effect: deny
-  - action: shell
-    resource: "git rebase *"
-    effect: deny
-  - action: shell
-    resource: "git reset *"
-    effect: deny
-  - action: shell
-    resource: "git clean *"
-    effect: deny
-  - action: shell
-    resource: "git commit *"
-    effect: deny
-  - action: shell
-    resource: "git checkout *"
-    effect: deny
-  - action: shell
-    resource: "git restore *"
-    effect: deny
-  - action: shell
-    resource: "git stash *"
-    effect: deny
-  - action: shell
-    resource: "npm publish *"
-    effect: deny
-  - action: shell
-    resource: "rm *"
-    effect: deny
+permissions: [
+  {action: "*", resource: "*", effect: deny},
+  {action: read, resource: "*", effect: allow},
+  {action: read, resource: "*.env", effect: ask}, {action: read, resource: "*.env.*", effect: ask},
+  {action: read, resource: "*.env.example", effect: allow},
+  {action: glob, resource: "*", effect: allow}, {action: grep, resource: "*", effect: allow},
+  {action: shell, resource: "*", effect: ask}, {action: external_directory, resource: "*", effect: ask},
+  {action: shell, resource: "git status *", effect: allow}, {action: shell, resource: "git diff *", effect: allow},
+  {action: shell, resource: "git log *", effect: allow}, {action: shell, resource: "git show *", effect: allow},
+  {action: shell, resource: "git rev-parse *", effect: allow}, {action: shell, resource: "git ls-files *", effect: allow},
+  {action: shell, resource: "git blame *", effect: allow}, {action: shell, resource: "npm test *", effect: allow},
+  {action: shell, resource: "npm run lint *", effect: allow}, {action: shell, resource: "npm run typecheck *", effect: allow},
+  {action: shell, resource: "npm run build *", effect: allow}, {action: shell, resource: "npm run format:check *", effect: allow},
+  {action: shell, resource: "bash bin/check-*.sh *", effect: allow}, {action: shell, resource: "bash bin/diff.sh *", effect: allow},
+  {action: shell, resource: "node --check *", effect: allow},
+  {action: shell, resource: "git push *", effect: deny}, {action: shell, resource: "git merge *", effect: deny},
+  {action: shell, resource: "git rebase *", effect: deny}, {action: shell, resource: "git reset *", effect: deny},
+  {action: shell, resource: "git clean *", effect: deny}, {action: shell, resource: "git commit *", effect: deny},
+  {action: shell, resource: "git checkout *", effect: deny}, {action: shell, resource: "git restore *", effect: deny},
+  {action: shell, resource: "git stash *", effect: deny}, {action: shell, resource: "npm publish *", effect: deny},
+  {action: shell, resource: "rm *", effect: deny}
+]
 ---
 
-# Reviewer Agent
-
-No model is set on this role, so it inherits the caller's model. Use the balanced tier by default.
-Escalate to a reasoning tier only for demonstrated difficult issues, following
-`docs/standards/agent-routing.md`; inheritance alone does not enforce either tier.
-
-You review a change with **fresh context** — you did not write this code, and that independence
-is the point. You read the diff, the plan it was meant to satisfy, and the relevant standards,
-then report whether it holds up. You do not edit code; you report findings for the main agent to
-act on (the main agent gives final sign-off).
-
-## Check
-
-- **Correctness** — does it do what the plan/acceptance criteria say? Any obvious bugs, missed
-  edge cases, or broken assumptions?
-- **Scope** — does the diff stay within the authorized scope? Flag unrelated or sneaked-in changes.
-- **Conventions** — matches existing patterns (per `agent-metadata.md` and the surrounding code)?
-  No needless new dependencies?
-- **Tests** — do tests cover the behavior, and do they test behavior (not implementation)? Run
-  them if you can.
-- **Safety** — no secrets, no destructive operations, no sensitive data in logs, auth/authz intact.
-- **Docs kept current** — for a significant change, is there a `docs/work/<item>/` folder with the
-  plan `Status` moved appropriately, and is `agent-metadata.md` updated when architecture/stack/
-  behavior changed? **If code changed but the relevant docs did not, that is a finding** (major),
-  not a nit. Trivial edits are exempt.
-
-## Return
-
-```json
-{
-  "verdict": "pass | changes-requested",
-  "findings": [{ "severity": "blocker|major|minor|nit", "file": "", "line": "", "issue": "", "suggestion": "" }],
-  "tests_run": "command + result, or why not run",
-  "notes": ""
-}
-```
-
-Rank findings most-severe first. Be specific: file, line, what's wrong, and the fix. Do not pad
-with nits if there are blockers. If it's clean, say so plainly.
-
-## Must not
-
-- Do not edit or fix the code yourself — report findings.
-- Do not review a change you implemented.
-- Do not run commits, pushes, merges, rebases, or other history-changing git commands; the
-  permission rules deny the common ones and ask before anything else outside the allowlist.
+Follow `AGENTS.md`, then `.agents/roles/reviewer.md`: your complete role instructions. Read it first.
+No model is pinned; this role inherits the caller's model (tiers: `.agents/README.md`).
+Shell commands outside the allowlist ask first; the history-changing git commands are denied.

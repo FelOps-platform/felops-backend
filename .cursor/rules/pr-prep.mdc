@@ -1,7 +1,0 @@
----
-description: Prepare a pull request summary with evidence, tests, documentation, risks, and rollback.
-alwaysApply: false
----
-
-Fill the pull request body from .github/PULL_REQUEST_TEMPLATE.md. Include summary, an optional linked issue, changed behavior, evidence, checks, documentation, QA/security notes, risks, and rollback. Do not claim completion without evidence.
-Full guidance: @.cursor/skills/pr-prep/SKILL.md

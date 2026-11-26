@@ -12,13 +12,14 @@ import path from 'node:path';
 
 const read = (file) => readFileSync(file, 'utf8');
 const normalize = (text) => text.replace(/\r\n/g, '\n');
-const files = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-  const file = path.join(dir, entry.name);
-  return entry.isDirectory() ? files(file) : [file];
+// Regular files only, with forward slashes; symlinks are never followed.
+const files = (dir) => (existsSync(dir) ? readdirSync(dir, { withFileTypes: true }) : []).flatMap((entry) => {
+  const file = `${dir}/${entry.name}`;
+  return entry.isDirectory() ? files(file) : entry.isFile() ? [file] : [];
 });
 
 const docsRoot = 'docs';
-const privateRoot = path.join('docs', 'private');
+const privateRoot = 'docs/private';
 const docs = files(docsRoot).filter(
   (file) => !file.startsWith(privateRoot) && (file.endsWith('.md') || file.endsWith('.mdx')),
 );
@@ -40,6 +41,18 @@ const featureFiles = [
   'docs/features/auth.md',
 ];
 
+// docs/work/<slug>/ files are historical snapshots; their links are not rewritten or checked.
+const historical = (file) => /^docs\/work\/[^/]+\//.test(file);
+const assertLocalLinks = (file, text) => {
+  if (historical(file)) return;
+  for (const match of text.matchAll(/\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
+    const target = match[1];
+    if (/^(?:[a-z][a-z\d+.-]*:|#)/i.test(target) || /[<>[\]]/.test(target)) continue;
+    const local = decodeURIComponent(target.split('#')[0]);
+    assert.ok(existsSync(path.resolve(path.dirname(file), local)), `${file}: missing local link ${target}`);
+  }
+};
+
 for (const file of docs) {
   const text = normalize(read(file));
   for (const [index, line] of text.split('\n').entries()) {
@@ -53,12 +66,13 @@ for (const file of docs) {
     const first = match[1].trim().split('\n')[0];
     assert.match(first, /^(?:stateDiagram-v2|sequenceDiagram|flowchart(?: LR| TD| RL| BT)?)$/, `${file}: invalid Mermaid diagram ${first}`);
   }
-  for (const match of text.matchAll(/\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
-    const target = match[1];
-    if (/^(?:[a-z][a-z\d+.-]*:|#)/i.test(target) || /[<>[\]]/.test(target)) continue;
-    const local = decodeURIComponent(target.split('#')[0]);
-    assert.ok(existsSync(path.resolve(path.dirname(file), local)), `${file}: missing local link ${target}`);
-  }
+  assertLocalLinks(file, text);
+}
+
+// Root docs, agent harness docs, and host adapters resolve their local links too.
+for (const file of ['AGENTS.md', 'README.md', 'api/README.md', '.github/PULL_REQUEST_TEMPLATE.md',
+  ...['.agents', '.opencode', '.claude', '.cursor'].flatMap(files).filter((f) => /\.(?:md|mdc)$/.test(f))]) {
+  assertLocalLinks(file, normalize(read(file)));
 }
 
 for (const file of featureFiles) {
@@ -81,7 +95,7 @@ const api = normalize(read(apiPath));
 const aiContract = normalize(read(aiContractPath));
 const actions = normalize(read(actionsPath));
 const architecture = normalize(read('docs/architecture.md'));
-const designCommand = normalize(read('.opencode/commands/design.md'));
+const designCommand = normalize(read('.agents/skills/design/SKILL.md'));
 
 const integrations = normalize(read('docs/features/integrations.md'));
 const auth = normalize(read('docs/features/auth.md'));
@@ -361,6 +375,13 @@ assert.match(databaseDoc, /Refresh tokens and auth codes are stored as hashes/, 
 assert.match(databaseDoc, /`sessions`, `auth_codes`/, 'database design names the auth tables');
 assert.match(databaseDoc, /password reset revokes all user sessions/i, 'database design documents reset revocation');
 assert.match(databaseDoc, /Email is normalized to lowercase/, 'database design documents email normalization');
+
+// Deleted meta-docs must not be referenced anywhere outside the historical work records.
+const stale = /agent-metadata\.md|agent-routing\.md|agent-onboarding\.md|agent-workflow\.md|docs\/onboarding|\.opencode\/README/;
+const sweep = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'api/README.md', 'opencode.json',
+  ...['docs', '.agents', '.opencode', '.claude', '.cursor', '.github'].flatMap(files)]
+  .filter((file) => !historical(file) && !file.startsWith(privateRoot) && /\.(?:md|mdc|mjs|json|ya?ml)$/.test(file));
+for (const file of sweep) assert.doesNotMatch(read(file), stale, `${file}: references a deleted meta-doc`);
 
 console.log('Backend documentation consistency passed.');
 NODE

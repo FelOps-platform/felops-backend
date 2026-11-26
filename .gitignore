@@ -16,7 +16,7 @@ npm-debug.log*
 .cursor/*.local.json
 .omo/
 .superpowers/
-.agents/
+.agents/.state/
 
 docs/private
 docs/database/schema.dbdiagram

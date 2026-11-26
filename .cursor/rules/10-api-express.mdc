@@ -1,0 +1,7 @@
+---
+description: Express 5 conventions for changes under api/.
+globs: api/**
+alwaysApply: false
+---
+
+Before editing `api/`, read `.agents/skills/express-api/SKILL.md`. `AGENTS.md` routing lists when to read the full handbook.

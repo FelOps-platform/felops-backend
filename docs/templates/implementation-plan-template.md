@@ -21,7 +21,7 @@ A clear user request authorizes the work it describes. Do not add a redundant pl
 ## 3. Evidence and conventions
 
 - Product constraints: docs/project-context.md
-- Verified stack and commands: agent-metadata.md and repository files
+- Verified stack and commands: docs/project-context.md, AGENTS.md, and repository files
 - Existing patterns and relevant ADRs:
 
 Do not invent a stack, dependency, or product requirement.

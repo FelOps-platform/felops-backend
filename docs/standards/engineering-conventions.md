@@ -5,8 +5,8 @@ These are the cross-cutting rules for Backend API and data work. The
 formatting; [schema.dbml](../database/schema.dbml) owns the data model. This page owns rules that
 neither states in full and resolves conflicts between them.
 
-Use these conventions when designing, planning, or implementing a Backend change. Do not restate
-them in a command, brief, or feature page; link here or to the owning section instead.
+Use these conventions when designing, planning, or implementing a Backend change; link here or to the
+owning section instead of restating them.
 
 ## API behavior
 
@@ -67,13 +67,9 @@ state, without hiding rows or removing existing grants.
 
 See the [API outline](../api/api-design-outline.md) for the response rules.
 
-## Documentation
+## Documentation and maintenance
 
 Feature pages, API references, and schema changes follow the
-[documentation conventions](document-conventions.md). Record durable decisions in
-[docs/adr](../adr/README.md).
-
-## Maintenance
-
-When a rule changes, update the owning document first, then any command that points to it. Do not
-add a second copy to a command or work brief.
+[documentation conventions](document-conventions.md); record durable decisions in [docs/adr](../adr/README.md).
+When a rule changes, update the owning document first; do not add a second copy to a skill, brief, or
+feature page.

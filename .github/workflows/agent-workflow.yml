@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  workflow-checks:
+  repo-checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +18,5 @@ jobs:
           node-version: '24'
       - name: Check agent workflow
         run: bash bin/check-agent-workflow.sh
+      - name: Check backend docs
+        run: bash bin/check-backend-docs.sh

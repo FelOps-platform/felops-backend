@@ -1,9 +1,0 @@
----
-description: Produce a practical plan for substantial changes.
-alwaysApply: false
----
-
-For feature-sized or risky work, write a plan to docs/work/<issue-id-or-short-slug>/plan.md from docs/templates/implementation-plan-template.md. Include goal, scope, verified conventions, affected files, steps, focused verification, risks, and rollback.
-
-A plan organizes work already authorized by the user's request. Ask only when a material ambiguity or consequential decision remains unresolved. If the user requested planning only, present the plan and stop.
-Full guidance: @.cursor/skills/implementation-planner/SKILL.md

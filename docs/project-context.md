@@ -1,6 +1,6 @@
 # Project context
 
-Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descriptions below distinguish current code from proposed workflows.
+Product docs reconciled 2026-11-20; technical state re-verified 2026-11-26. Product descriptions below distinguish current code from proposed workflows.
 
 ## Product
 
@@ -17,7 +17,7 @@ Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descrip
 | --- | --- | --- |
 | API | Express app with JSON middleware and one health route | [api/src/app.ts](../api/src/app.ts), [api/src/server.ts](../api/src/server.ts) |
 | Runtime config | Infisical Universal Auth retrieval followed by Zod validation | [api/src/config/env.ts](../api/src/config/env.ts), [api/src/integrations/infisical/fetch-secrets.ts](../api/src/integrations/infisical/fetch-secrets.ts) |
-| Database | PostgreSQL/Drizzle connection module and users schema; health route has no database flow | [api/src/config/db.ts](../api/src/config/db.ts), [api/src/database/schema.ts](../api/src/database/schema.ts) |
+| Database | PostgreSQL/Drizzle connection module and schema for all 16 planned tables; health route has no database flow | [api/src/config/db.ts](../api/src/config/db.ts), [api/src/database/schema.ts](../api/src/database/schema.ts) |
 | Tool execution | Backend-owned planned workflow; no runtime yet | [Architecture](architecture.md#components), [AI Service contract](ai-service-integration/ai-service-contract.md), [Actions](features/actions.md) |
 | AI | Separate felops-ai project per repository boundary; async turns, approvals, and ingestion | [Architecture](architecture.md) |
 | Product workflows | Authentication, integrations, actions, knowledge, agents, approvals, and channels are documented, not implemented in the API | [Authentication](features/auth.md), [Actions](features/actions.md) |
@@ -28,6 +28,18 @@ Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descrip
 - API startup requires Infisical bootstrap credentials and validates runtime settings including LOG_LEVEL, PORT, and DATABASE_URL. This runtime secret integration does not specify access to user or workspace vault data. [api/.env.example](../api/.env.example), [api/src/config/env.ts](../api/src/config/env.ts)
 - Hosting, deployment target, and production runtime requirements are unknown; do not infer them from the package scripts.
 - Documentation PR #1 targets main and was still open when checked on 2026-10-22. Its proposed Sprint 1 flow and other docs are not evidence of implemented behavior. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
+
+## Verified technical state
+
+Re-inspected 2026-11-26 against the source files cited; command lists live in [AGENTS.md](../AGENTS.md).
+
+- **Tooling:** npm; the API has a lockfile; there is no root `package.json` or `engines` field. TypeScript 7 compiles; a TypeScript 6 compatibility dependency serves tooling that still needs the previous programmatic API (temporary). [api/package.json](../api/package.json)
+- **Runtime config:** [env.ts](../api/src/config/env.ts) loads dotenv, fetches secrets, then validates `NODE_ENV`, `LOG_LEVEL`, `PORT`, and `DATABASE_URL` with Zod. Only `NODE_ENV` (development, production, test; unset or unknown falls back to development) is read from `process.env`. [fetch-secrets.ts](../api/src/integrations/infisical/fetch-secrets.ts) reads the `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` bootstrap credentials (never record values), signs in with Universal Auth, and returns `LOG_LEVEL`, `PORT`, and `DATABASE_URL` for the `NODE_ENV` environment. Missing bootstrap credentials fail at import time, which is why the test suite needs them.
+- **Database:** [db.ts](../api/src/config/db.ts) builds a node-postgres pool and `drizzle({ client: pool, relations })`. Domain schema files under `api/src/database/` and [relations.ts](../api/src/database/relations.ts) (`defineRelations`) match the 8 enums, 16 tables, and 28 relationships in [schema.dbml](database/schema.dbml). Three Drizzle v1 RC migration folders exist in `api/drizzle/` (no `meta/_journal.json`). [drizzle.config.ts](../api/drizzle.config.ts) falls back to `process.env.DATABASE_URL` for offline `generate`, `check`, and `export`. `database:migrate` has never been run against a live database.
+- **Logging and middleware:** Pino and pino-http, pretty-printed in development. [app.ts](../api/src/app.ts) has only JSON parsing and the HTTP logger; Helmet, CORS, request ID, readiness, `AppError`, and global error handling are documented targets in [express-conventions.md](standards/express-conventions.md), not implemented.
+- **Tests:** Vitest with a health-route integration test and schema-parity unit tests; the suite needs Infisical bootstrap credentials.
+- **CI:** [agent-workflow.yml](../.github/workflows/agent-workflow.yml) runs the credential-free agent harness, OpenCode config, and backend docs checks on pull requests and pushes to `main`; there is no lint, typecheck, build, or test workflow.
+- **Unknown:** license, hosting, monitoring, and rollback procedures.
 
 ## Terminology
 

@@ -1,6 +1,6 @@
 # Delivery
 
-This page owns the team delivery stages and their exit gates. The [documentation index](README.md) owns the reading order and document map; [agent workflow](onboarding/agent-workflow.md) owns the contributor execution loop.
+This page owns the team delivery stages and their exit gates. The [documentation index](README.md) owns the reading order and document map; [AGENTS.md](../AGENTS.md) owns the contributor execution loop and the command list.
 
 ## 1. Design
 
@@ -41,18 +41,7 @@ Do not treat empty or partial placeholders as published contracts.
 
 ## 4. Verification and review
 
-Run the checks relevant to the change:
-
-```bash
-npm run lint --prefix api
-npm run typecheck --prefix api
-npm run build --prefix api
-npm test --prefix api
-
-bash bin/check-backend-docs.sh
-bash bin/check-agent-workflow.sh
-bash bin/check-opencode-config.sh
-```
+Run the checks relevant to the change from the [AGENTS.md](../AGENTS.md) command table.
 
 The API test suite currently needs Infisical bootstrap credentials. Report that limitation accurately.
 
@@ -72,7 +61,7 @@ Deployment is a separate phase with its own authorization.
 ## Definition of done
 
 - Acceptance criteria are met.
-- Owning docs and `agent-metadata.md` are current.
+- Owning docs are current.
 - Verification evidence is recorded.
 - The diff is reviewed.
 - The change is committed as a coherent unit.
