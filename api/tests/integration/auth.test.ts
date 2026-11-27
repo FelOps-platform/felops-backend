@@ -85,6 +85,7 @@ describe('Auth HTTP integration (/api/v1/auth)', () => {
     const verifyRes = await request(app).post('/api/v1/auth/verify-email').send({
       email: 'hana@acm.com',
       code,
+      password: 'StrongPassword123!',
     });
     expect(verifyRes.status).toBe(200);
     expect(verifyRes.body.data.accessToken).toBeTruthy();

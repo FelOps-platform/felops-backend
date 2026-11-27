@@ -74,6 +74,6 @@ describe('email-sender (EmailJS)', () => {
 
     await expect(
       sendVerificationCode({ to: 'hana@acm.com', code: '123456', expiresInMinutes: 10 }),
-    ).rejects.toThrow('EmailJS send failed with status 422');
+    ).rejects.toThrow(/^EmailJS send failed with status 422$/);
   });
 });

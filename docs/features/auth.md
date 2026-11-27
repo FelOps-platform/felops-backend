@@ -30,9 +30,9 @@ The [API outline](../api/api-design-outline.md) owns the auth endpoints, error c
 
 - **Where:** Check your email and the verification-code entry.
 - **Flow:**
-  1. The frontend sends `POST /api/v1/auth/verify-email` with `{ email, code }`.
+  1. The frontend sends `POST /api/v1/auth/verify-email` with `{ email, code, password }`.
   2. The Backend hashes the submitted code and validates the hash before checking expiry, attempt count, and single use.
-  3. The Backend sets `is_verified = true`, consumes the code, and creates a session.
+  3. The Backend sets the supplied password as authoritative, sets `is_verified = true`, consumes the code, and creates a session.
   4. The Backend returns `200` with an access token and the user, and sets the refresh cookie.
   5. A resend request uses `POST /api/v1/auth/resend-verification` with `{ email }`.
   6. For an unverified account, the Backend invalidates the previous code, sends a new code, and returns empty `202`. Unknown emails return `404 NOT_FOUND` (`details: [{ resource: "user" }]`) and verified emails return `409 EMAIL_ALREADY_VERIFIED`. Requests over the route rate limit return `429 RATE_LIMITED`.
@@ -47,6 +47,8 @@ The [API outline](../api/api-design-outline.md) owns the auth endpoints, error c
   - Verification codes are 6 digits, hashed with HMAC-SHA-256 and a server pepper, with a 10-minute expiry.
   - A code allows 5 attempts and is single-use.
   - Resend requests are rate-limited per client IP by the route middleware.
+  - The password supplied at verification becomes authoritative. The sign-up password is provisional, so any password written before verification cannot survive (pre-account-hijacking defense; [ADR-0011](../adr/ADR-0011-pre-account-hijacking-mitigation.md)).
+  - The frontend keeps the sign-up password in memory only and sends it with the code. It must not persist it in browser storage. If the in-memory value is lost (reload, another device), the user restarts sign-up or uses password reset.
 
 ### Sign in
 
@@ -169,8 +171,9 @@ stateDiagram-v2
 
 ## 4. Decisions
 
-No ADR; this section records the rationale.
+[ADR-0011](../adr/ADR-0011-pre-account-hijacking-mitigation.md) records the pre-account-hijacking decision; this section records the remaining rationale.
 
 - **Short access token and rotating refresh session.** Keeps access checks stateless while revoking refresh cookies on sign-out, password reset, or reuse outside the concurrent-refresh grace window.
 - **Verify before sign-in.** Sign-up creates no session; repeat sign-ups never change an existing account's credentials, and email ownership is proven before sign-in.
+- **Verification sets the authoritative password.** The sign-up password is provisional. The verifier proves email ownership and supplies the password, so an attacker who pre-registered the address cannot retain access.
 - **Explicit UX errors over strict anti-enumeration.** `sign-up` returns `409 EMAIL_ALREADY_EXISTS` for verified emails, `resend-verification` returns `404 NOT_FOUND` or `409 EMAIL_ALREADY_VERIFIED`, and `password-reset/request` returns `404 NOT_FOUND` for unknown emails so the frontend can route users directly; `sign-in` still returns generic `401 INVALID_CREDENTIALS`.

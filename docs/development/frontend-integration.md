@@ -25,6 +25,16 @@ Sign-in, verify-email, and refresh return `{ data: { accessToken, user } }` and 
 
 The frontend must never store the refresh token in `localStorage` or attempt to read it from `document.cookie`.
 
+### Email verification password
+
+The password entered on the Create Account screen is provisional. `POST /auth/verify-email` requires:
+
+```json
+{ "email": "...", "code": "123456", "password": "..." }
+```
+
+Verification sets that password as authoritative. The frontend should keep the sign-up password in memory, send it with the code, and clear it afterward. Do not persist it in browser storage. If it is lost after a reload or on another device, restart sign-up or use password reset. No extra verification field is needed for the normal flow. See [ADR-0011](../adr/ADR-0011-pre-account-hijacking-mitigation.md).
+
 ## 2. Cookie behavior
 
 | Setting    | Development (`NODE_ENV=development`) | Production (`NODE_ENV=production`) |

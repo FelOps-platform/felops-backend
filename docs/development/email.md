@@ -102,4 +102,4 @@ npm run smoke:auth --prefix api -- \
   --email smoke+unique@yourdomain.com
 ```
 
-A `503 UPSTREAM_UNAVAILABLE` with `{ service: "email" }` means EmailJS rejected the request, timed out, or the template/service configuration is wrong. Check Render logs for the EmailJS status and response body.
+A `503 UPSTREAM_UNAVAILABLE` with `{ service: "email" }` means EmailJS rejected the request, timed out, or the template/service configuration is wrong. Render logs contain only the EmailJS HTTP status; inspect the EmailJS dashboard or execution logs for details. Response bodies are not logged because they can contain recipient PII.

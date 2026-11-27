@@ -18,7 +18,7 @@ import {
   consumeAuthCode,
   createUser,
   findUserByEmail,
-  markUserVerified,
+  updateUserPasswordAndVerify,
 } from '../auth.repository.js';
 import {
   issueAuthCode,
@@ -86,10 +86,12 @@ export async function signUp(input: {
 export async function verifyEmail(input: {
   email: string;
   code: string;
+  password: string;
   userAgent: string | null;
 }): Promise<SessionAuthResult> {
   const email = input.email;
   const now = new Date();
+  const passwordHash = await hashPassword(input.password);
 
   const txResult = await getDb().transaction(async (tx) => {
     const user = await findUserByEmail(email, tx);
@@ -110,7 +112,8 @@ export async function verifyEmail(input: {
       return { isValid: false as const, reason: 'invalid' as const };
     }
 
-    const verifiedUser = await markUserVerified(user.id, tx);
+    // The verifier sets the authoritative password; a password written before verification cannot survive.
+    const verifiedUser = await updateUserPasswordAndVerify({ userId: user.id, passwordHash }, tx);
     const session = await issueSession(
       { userId: verifiedUser.id, userAgent: input.userAgent, now },
       tx,

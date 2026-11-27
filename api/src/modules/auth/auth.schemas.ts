@@ -23,6 +23,7 @@ export const signUpSchema = z.strictObject({
 export const verifyEmailSchema = z.strictObject({
   email: emailSchema,
   code: sixDigitCodeSchema,
+  password: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
 });
 
 export const resendVerificationSchema = z.strictObject({

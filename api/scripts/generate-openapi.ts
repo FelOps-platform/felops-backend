@@ -174,13 +174,14 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           tags: ['Auth'],
           summary: 'Verify email with 6-digit code',
           description:
-            'Verifies the 6-digit code (hash checked before expiry; max 5 attempts; 10-minute TTL; single-use), marks the user verified, issues an access token, and sets the HttpOnly refresh cookie.',
+            'Verifies the 6-digit code (hash checked before expiry; max 5 attempts; 10-minute TTL; single-use), sets the authoritative password, marks the user verified, issues an access token, and sets the HttpOnly refresh cookie.',
           operationId: 'verifyEmail',
           requestBody: {
             required: true,
             content: jsonContent('VerifyEmailRequest', {
               email: 'hana@acm.com',
               code: '123456',
+              password: 'StrongPassword123!',
             }),
           },
           responses: {

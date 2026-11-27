@@ -222,7 +222,7 @@ async function main(): Promise<void> {
     const verify = await call('/auth/verify-email', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: options.email, code }),
+      body: JSON.stringify({ email: options.email, code, password: options.password }),
     });
     const bodyVerify = await readJson<{ data?: AuthSession }>(verify);
     assert(

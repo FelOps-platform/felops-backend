@@ -54,20 +54,26 @@ describe('auth services (PGlite PostgreSQL)', () => {
     vi.useRealTimers();
   });
 
-  it('does not overwrite unverified credentials, returns 409 for verified users, and verifies email', async () => {
-    await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
+  it('replaces any pre-verification password with the verifier password and returns 409 once verified', async () => {
+    await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'AttackerPassword123!' });
     const firstCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
 
-    await signUp({ name: 'Hana Ehab', email: 'hana@acm.com', password: 'NewStrongPassword123!' });
+    await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'VictimPassword123!' });
     const secondCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
 
     await expect(
-      verifyEmail({ email: 'hana@acm.com', code: firstCode, userAgent: null }),
+      verifyEmail({
+        email: 'hana@acm.com',
+        code: firstCode,
+        password: 'VerifierPassword123!',
+        userAgent: null,
+      }),
     ).rejects.toMatchObject({ statusCode: 422, code: AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE });
 
     const verified = await verifyEmail({
       email: 'hana@acm.com',
       code: secondCode,
+      password: 'VerifierPassword123!',
       userAgent: 'Vitest',
     });
     expect(verified.user.name).toBe('Hana');
@@ -79,12 +85,16 @@ describe('auth services (PGlite PostgreSQL)', () => {
     expect(me.email).toBe('hana@acm.com');
 
     await expect(
-      signIn({ email: 'hana@acm.com', password: 'NewStrongPassword123!', userAgent: null }),
+      signIn({ email: 'hana@acm.com', password: 'AttackerPassword123!', userAgent: null }),
+    ).rejects.toMatchObject({ statusCode: 401, code: AUTH_ERROR_CODES.INVALID_CREDENTIALS });
+
+    await expect(
+      signIn({ email: 'hana@acm.com', password: 'VictimPassword123!', userAgent: null }),
     ).rejects.toMatchObject({ statusCode: 401, code: AUTH_ERROR_CODES.INVALID_CREDENTIALS });
 
     const signedIn = await signIn({
       email: 'hana@acm.com',
-      password: 'StrongPassword123!',
+      password: 'VerifierPassword123!',
       userAgent: null,
     });
     expect(signedIn.accessToken).toBeTruthy();
@@ -97,6 +107,35 @@ describe('auth services (PGlite PostgreSQL)', () => {
     expect(saved?.name).toBe('Hana');
   });
 
+  it('sets the verifier password when an attacker signs up after the victim', async () => {
+    await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'VictimPassword123!' });
+    await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'AttackerPassword123!' });
+    const code = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
+
+    const verified = await verifyEmail({
+      email: 'hana@acm.com',
+      code,
+      password: 'VerifierPassword123!',
+      userAgent: null,
+    });
+    expect(verified.user.isVerified).toBe(true);
+
+    await expect(
+      signIn({ email: 'hana@acm.com', password: 'AttackerPassword123!', userAgent: null }),
+    ).rejects.toMatchObject({ statusCode: 401, code: AUTH_ERROR_CODES.INVALID_CREDENTIALS });
+
+    await expect(
+      signIn({ email: 'hana@acm.com', password: 'VictimPassword123!', userAgent: null }),
+    ).rejects.toMatchObject({ statusCode: 401, code: AUTH_ERROR_CODES.INVALID_CREDENTIALS });
+
+    const signedIn = await signIn({
+      email: 'hana@acm.com',
+      password: 'VerifierPassword123!',
+      userAgent: null,
+    });
+    expect(signedIn.accessToken).toBeTruthy();
+  });
+
   it('enforces hash-before-expiry ordering and 5-attempt lockout on verification codes', async () => {
     await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
     const validCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
@@ -104,16 +143,31 @@ describe('auth services (PGlite PostgreSQL)', () => {
 
     vi.advanceTimersByTime(AUTH_CODE_TTL_MS + 1000);
     await expect(
-      verifyEmail({ email: 'hana@acm.com', code: wrongCode, userAgent: null }),
+      verifyEmail({
+        email: 'hana@acm.com',
+        code: wrongCode,
+        password: 'StrongPassword123!',
+        userAgent: null,
+      }),
     ).rejects.toMatchObject({ statusCode: 422, code: AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE });
 
     await expect(
-      verifyEmail({ email: 'hana@acm.com', code: validCode, userAgent: null }),
+      verifyEmail({
+        email: 'hana@acm.com',
+        code: validCode,
+        password: 'StrongPassword123!',
+        userAgent: null,
+      }),
     ).rejects.toMatchObject({ statusCode: 422, code: AUTH_ERROR_CODES.VERIFICATION_CODE_EXPIRED });
 
     for (let i = 0; i < 4; i++) {
       await expect(
-        verifyEmail({ email: 'hana@acm.com', code: wrongCode, userAgent: null }),
+        verifyEmail({
+          email: 'hana@acm.com',
+          code: wrongCode,
+          password: 'StrongPassword123!',
+          userAgent: null,
+        }),
       ).rejects.toMatchObject({
         statusCode: 422,
         code: AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE,
@@ -121,7 +175,12 @@ describe('auth services (PGlite PostgreSQL)', () => {
     }
 
     await expect(
-      verifyEmail({ email: 'hana@acm.com', code: validCode, userAgent: null }),
+      verifyEmail({
+        email: 'hana@acm.com',
+        code: validCode,
+        password: 'StrongPassword123!',
+        userAgent: null,
+      }),
     ).rejects.toMatchObject({ statusCode: 422, code: AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE });
   });
 
@@ -135,7 +194,12 @@ describe('auth services (PGlite PostgreSQL)', () => {
 
     await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
     const code = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
-    await verifyEmail({ email: 'hana@acm.com', code, userAgent: null });
+    await verifyEmail({
+      email: 'hana@acm.com',
+      code,
+      password: 'StrongPassword123!',
+      userAgent: null,
+    });
 
     await expect(resendVerification({ email: 'hana@acm.com' })).rejects.toMatchObject({
       statusCode: 409,
@@ -162,7 +226,12 @@ describe('auth services (PGlite PostgreSQL)', () => {
   it('rotates refresh tokens, honors concurrent grace window, and revokes on stale reuse outside grace', async () => {
     await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
     const code = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
-    const session1 = await verifyEmail({ email: 'hana@acm.com', code, userAgent: null });
+    const session1 = await verifyEmail({
+      email: 'hana@acm.com',
+      code,
+      password: 'StrongPassword123!',
+      userAgent: null,
+    });
 
     const rotated = await refresh({ rawRefreshToken: session1.refreshToken });
     expect(rotated.refreshToken).not.toBe(session1.refreshToken);
@@ -188,6 +257,7 @@ describe('auth services (PGlite PostgreSQL)', () => {
     const verified = await verifyEmail({
       email: 'hana@acm.com',
       code: verifyCode,
+      password: 'StrongPassword123!',
       userAgent: null,
     });
 

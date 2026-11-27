@@ -89,8 +89,8 @@ paths:
         - Auth
       summary: Verify email with 6-digit code
       description: Verifies the 6-digit code (hash checked before expiry; max 5 attempts; 10-minute TTL;
-        single-use), marks the user verified, issues an access token, and sets the HttpOnly refresh
-        cookie.
+        single-use), sets the authoritative password, marks the user verified, issues an access
+        token, and sets the HttpOnly refresh cookie.
       operationId: verifyEmail
       requestBody:
         required: true
@@ -101,6 +101,7 @@ paths:
             example:
               email: hana@acm.com
               code: "123456"
+              password: StrongPassword123!
       responses:
         "200":
           description: Email verified and session created
@@ -807,9 +808,14 @@ components:
         code:
           type: string
           pattern: ^\d{6}$
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
       required:
         - email
         - code
+        - password
       additionalProperties: false
     ResendVerificationRequest:
       type: object

@@ -41,18 +41,6 @@ export async function createUser(
   return row;
 }
 
-export async function markUserVerified(
-  userId: number,
-  tx: DbExecutor = getDb(),
-): Promise<UserRecord> {
-  const [row] = await tx
-    .update(users)
-    .set({ isVerified: true })
-    .where(eq(users.id, userId))
-    .returning();
-  return row;
-}
-
 export async function updateUserPasswordAndVerify(
   input: { userId: number; passwordHash: string },
   tx: DbExecutor = getDb(),
