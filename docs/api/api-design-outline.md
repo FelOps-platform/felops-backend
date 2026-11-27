@@ -186,6 +186,21 @@ When generating the detailed specs after implementation:
 - Use complete request/response examples; create resources with `201`, accepted async work with `202`, deletes with `204`.
 - Validate generated specs before publishing.
 
+### Apidog environments
+
+`openapi.client.yaml` declares two servers:
+
+- `Local` → `http://localhost:3000/api/v1`
+- `Production` → `https://felops-backend.onrender.com/api/v1`
+
+When importing into Apidog:
+
+1. Enable **Import Servers as Environments**.
+2. Keep **Prepend base path** disabled so `/api/v1` stays in the environment base URL rather than being added to every endpoint path.
+3. Switch between `Local` and `Production` from the environment selector.
+
+If the project was imported without that option, re-import with it enabled or create the two environments manually in Apidog and set those base URLs.
+
 ## 11. Deferred scope
 
 - Custom HTTP actions, including create, request builder, test, edit, and delete flows.

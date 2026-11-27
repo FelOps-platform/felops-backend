@@ -25,7 +25,7 @@ bash bin/check-agent-workflow.sh
 - **`@electric-sql/pglite`** for an in-memory PostgreSQL database.
 - **Real Drizzle migrations** from `api/drizzle/` applied in order.
 
-The tests execute real SQL, constraints, indexes, transactions, and `ON DELETE` behavior. There are no `InMemory*Repository` fakes.
+The tests execute real SQL, constraints, indexes, and transactions. Foreign-key `ON DELETE` metadata is asserted by the schema parity test; runtime cascade/SET NULL deletes are not separately exercised. Migrations run against an empty PGlite database, so populated-table migration paths are not covered. There are no `InMemory*Repository` fakes.
 
 ## Test runtime
 

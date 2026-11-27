@@ -111,3 +111,8 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 - Channel deletion cascades its conversations.
 - Conversation deletion cascades messages, executions, and approvals.
 - Agent deletion clears channel assignments and cascades agent-owned grants and assignments.
+
+### Migration notes
+
+- The `20261125202721_sync_schema` migration assumes the `users` table is empty when it adds `password_hash NOT NULL` and narrows `users.name` to `varchar(50)`. A populated environment needs a backfill and value check before that migration.
+- Tests apply the migration chain to an empty PGlite database; populated-table migration paths are not exercised.

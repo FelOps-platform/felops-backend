@@ -43,7 +43,7 @@ server.ts (loadEnv → initLogger → initDatabase → listen)
 
 - `src/app.ts`, `src/routes.ts`, and `src/server.ts`: pure `createApp()` factory, `/api/v1` router mount, and process bootstrap (DB readiness, graceful shutdown, fatal handlers).
 - `src/errors/` and `src/middleware/`: `AppError` hierarchy, central error normalizer, request ID, Zod validation (`validate` / `getValidated`), bearer authentication (`authenticate` / `getAuthUser`), `express-rate-limit` wrapper, and 404/error handlers.
-- `src/modules/auth/` and `src/modules/workspaces/`: plain-function golden blueprints — `workspaces/` (3 owner-scoped endpoints, minimal CRUD+auth) and `auth/` (9 endpoints across workflow-split services + transactions).
+- `src/modules/auth/` and `src/modules/workspaces/`: plain-function golden blueprints — `workspaces/` (3 owner-scoped endpoints, minimal CRUD+auth) and `auth/` (10 endpoints across workflow-split services + transactions).
 - `src/config/` and `src/infra/`: runtime configuration (`loadEnv()`/`getConfig()`), database lifecycle (`initDatabase()`/`getDb()`), Pino logging with redaction, Infisical secret retrieval, and the EmailJS email sender over HTTPS.
 - `src/database/schema.ts` and `drizzle/`: Drizzle schema and migrations.
 - `tests/`: credential-free unit and Supertest integration test suite.

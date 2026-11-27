@@ -1,5 +1,7 @@
 # Implementation plan: Authentication & Workspace Onboarding
 
+> Historical implementation record. Current behavior is defined by [auth.md](../../features/auth.md) and [project-context.md](../../project-context.md); this file is not maintained as current API documentation.
+
 Status: Done
 Created: 2026-11-26
 Updated: 2026-11-27 — the 60-second email+IP cooldown was removed; resend/reset now rely on per-IP route rate limits. Repeat sign-ups no longer overwrite credentials for unverified accounts. Email delivery failures return 503 UPSTREAM_UNAVAILABLE, the refresh cookie supports cross-site frontends via SameSite=None; Secure with an Origin check, and COOKIE_SECURE is derived from NODE_ENV rather than read from Infisical.

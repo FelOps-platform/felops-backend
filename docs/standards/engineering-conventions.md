@@ -99,8 +99,9 @@ Before creating a new module, read the live blueprints: `api/src/modules/workspa
 - Hash passwords with Argon2id; never store or log plaintext credentials.
 - Keep access tokens short-lived; store refresh tokens and auth codes as hashes; rotate refresh
   tokens; revoke sessions on sign-out and password reset.
-- Use generic responses for sign-up, password reset, and resend to avoid enumeration; rate-limit
-  these flows.
+- Keep sign-in responses generic to avoid credential enumeration. Sign-up, resend, and
+  password-reset requests may return the explicit `404`/`409` codes documented in the auth
+  workflow so the client can route users; rate-limit all of these flows.
 - Workspace resources for non-members return `404 NOT_FOUND`; `403 FORBIDDEN` is for role
   restrictions when membership is modeled.
 - The AI Service calls the Backend API; it does not write PostgreSQL directly.

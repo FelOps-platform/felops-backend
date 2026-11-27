@@ -108,8 +108,8 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
         'Client-facing REST API for FelOps. Covers implemented Health, Authentication, and Workspace onboarding endpoints.',
     },
     servers: [
-      { url: 'http://localhost:3000/api/v1', description: 'Local development (Apidog default)' },
-      { url: '/api/v1', description: 'Relative Client API base path' },
+      { url: 'http://localhost:3000/api/v1', description: 'Local' },
+      { url: 'https://felops-backend.onrender.com/api/v1', description: 'Production' },
     ],
     tags: [
       { name: 'Health', description: 'Service liveness check' },

@@ -71,7 +71,7 @@ for (const file of skillFiles) {
   assert.equal(names.has(dir), false, `duplicate skill name ${dir}: ${names.get(dir)} and ${file}`);
   names.set(dir, file);
 }
-const required = ['adr-writer', 'diagnosing-bugs', 'express-api', 'grill-me-with-doc', 'implementation-planner', 'pr-prep', 'tdd',
+const required = ['adr-writer', 'diagnosing-bugs', 'express-api', 'gitbook-docs', 'grill-me-with-doc', 'implementation-planner', 'pr-prep', 'tdd',
   'design', 'implement', 'onboard', 'plan', 'ship'];
 assert.deepEqual([...names.keys()].sort(), [...required].sort(), 'unexpected or missing skills');
 

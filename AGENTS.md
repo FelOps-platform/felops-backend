@@ -2,7 +2,7 @@
 
 TypeScript/Express API in `api/` (ESM, NodeNext). Implemented endpoints cover `GET /api/v1/health`, Auth (`/api/v1/auth/*`), and owner-scoped Workspaces (`/api/v1/workspaces/*`); other product workflows in `docs/` remain planned. Treat unverified facts as Unknown.
 
-Stack: Express 5, TypeScript 7 (temporary TS 6 compat dep), Zod 4, Drizzle ORM, `pg`/PostgreSQL, Pino, Vitest 5 + `@electric-sql/pglite`, Argon2id, `jose`, Nodemailer (SMTP), Infisical runtime secrets.
+Stack: Express 5, TypeScript 7 (temporary TS 6 compat dep), Zod 4, Drizzle ORM, `pg`/PostgreSQL, Pino, Vitest 5 + `@electric-sql/pglite`, Argon2id, `jose`, EmailJS (HTTPS), Infisical runtime secrets.
 
 ## Commands
 
@@ -45,6 +45,7 @@ Server startup loads runtime secrets from Infisical (`api/.env.example` names bo
 | Schema or database | `docs/database/schema.dbml`, `docs/database/database.md` |
 | Feature workflow | `docs/features/<feature>.md`, `docs/standards/document-conventions.md` |
 | AI Service boundary (protected; edit only if asked; read section only) | `docs/ai-service-integration/ai-service-contract.md` |
+| Public GitBook docs (cross-team, Apidog-linked) | skill `gitbook-docs`, `.agents/skills/gitbook-docs/SKILL.md` |
 | Routine `api/` code & golden blueprints | skill `express-api`, `api/src/modules/workspaces/` (minimal CRUD+auth), `api/src/modules/auth/` (multi-workflow+tx), `api/tests/helpers/test-runtime.ts` (PGlite) |
 | `api/src/{app,routes,server}.ts`, global middleware/errors, Apidog OpenAPI, full `api/` PR review | `docs/standards/express-conventions.md` |
 | LLM calls, tools, RAG, agent behavior | `docs/standards/ai-engineering-rules.md` |
