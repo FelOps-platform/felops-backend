@@ -201,7 +201,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
       { name: 'granted_scopes', sqlType: 'varchar(1000)', notNull: false },
       { name: 'encrypted_credentials', sqlType: 'text', notNull: true },
       { name: 'token_expires_at', sqlType: 'timestamp with time zone', notNull: false },
-      { name: 'connected_by', sqlType: 'integer', notNull: true },
+      { name: 'connected_by', sqlType: 'integer', notNull: false },
       {
         name: 'connected_at',
         sqlType: 'timestamp with time zone',
@@ -216,7 +216,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
       { name: 'state_hash', sqlType: 'varchar(64)', notNull: true, primary: true },
       { name: 'workspace_id', sqlType: 'integer', notNull: true },
       { name: 'integration_key', sqlType: 'varchar(50)', notNull: true },
-      { name: 'initiated_by', sqlType: 'integer', notNull: true },
+      { name: 'initiated_by', sqlType: 'integer', notNull: false },
       { name: 'redirect_uri', sqlType: 'varchar(2048)', notNull: true },
       { name: 'return_path', sqlType: 'varchar(512)', notNull: false },
       { name: 'expires_at', sqlType: 'timestamp with time zone', notNull: true },
@@ -350,6 +350,12 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
         columns: ['expires_at'],
       },
       {
+        table: 'workspaces',
+        name: 'idx_workspaces_owner',
+        unique: false,
+        columns: ['owner_id'],
+      },
+      {
         table: 'agents',
         name: 'uq_agents_workspace_name',
         unique: true,
@@ -479,7 +485,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
           columns: ['owner_id'],
           foreignTable: 'users',
           foreignColumns: ['id'],
-          onDelete: 'no action',
+          onDelete: 'cascade',
         },
         {
           table: 'agents',
@@ -521,7 +527,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
           columns: ['updated_by'],
           foreignTable: 'users',
           foreignColumns: ['id'],
-          onDelete: 'no action',
+          onDelete: 'set null',
         },
         {
           table: 'workspaces_integrations',
@@ -535,7 +541,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
           columns: ['connected_by'],
           foreignTable: 'users',
           foreignColumns: ['id'],
-          onDelete: 'no action',
+          onDelete: 'set null',
         },
         {
           table: 'oauth_states',
@@ -549,7 +555,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
           columns: ['initiated_by'],
           foreignTable: 'users',
           foreignColumns: ['id'],
-          onDelete: 'no action',
+          onDelete: 'set null',
         },
         {
           table: 'knowledge_sources',
@@ -563,7 +569,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
           columns: ['created_by'],
           foreignTable: 'users',
           foreignColumns: ['id'],
-          onDelete: 'no action',
+          onDelete: 'set null',
         },
         {
           table: 'agents_knowledge_sources',
@@ -654,7 +660,7 @@ describe('Database schema parity with docs/database/schema.dbml', () => {
           columns: ['decided_by'],
           foreignTable: 'users',
           foreignColumns: ['id'],
-          onDelete: 'no action',
+          onDelete: 'set null',
         },
       ]),
     );

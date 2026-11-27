@@ -97,7 +97,7 @@ export const approvals = pgTable(
     params: jsonb('params').$type<Record<string, unknown>>().notNull().default({}),
     effectSummary: varchar('effect_summary', { length: 1000 }).notNull(),
     status: approvalStatusEnum('status').notNull().default('pending'),
-    decidedBy: integer('decided_by').references(() => users.id),
+    decidedBy: integer('decided_by').references(() => users.id, { onDelete: 'set null' }),
     note: varchar('note', { length: 1000 }),
     requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
     decidedAt: timestamp('decided_at', { withTimezone: true }),

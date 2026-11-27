@@ -180,7 +180,7 @@ export const relations = defineRelations(schema, (r) => ({
     connectedByUser: r.one.users({
       from: r.workspacesIntegrations.connectedBy,
       to: r.users.id,
-      optional: false,
+      optional: true,
     }),
   },
 
@@ -193,7 +193,7 @@ export const relations = defineRelations(schema, (r) => ({
     initiatedByUser: r.one.users({
       from: r.oauthStates.initiatedBy,
       to: r.users.id,
-      optional: false,
+      optional: true,
     }),
   },
 

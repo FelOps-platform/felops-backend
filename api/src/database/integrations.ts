@@ -20,7 +20,7 @@ export const workspaceActionSettings = pgTable(
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     toolKey: varchar('tool_key', { length: 100 }).notNull(),
     enabled: boolean('enabled').notNull().default(true),
-    updatedBy: integer('updated_by').references(() => users.id),
+    updatedBy: integer('updated_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
@@ -42,9 +42,7 @@ export const workspacesIntegrations = pgTable(
     grantedScopes: varchar('granted_scopes', { length: 1000 }),
     encryptedCredentials: text('encrypted_credentials').notNull(),
     tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }),
-    connectedBy: integer('connected_by')
-      .notNull()
-      .references(() => users.id),
+    connectedBy: integer('connected_by').references(() => users.id, { onDelete: 'set null' }),
     connectedAt: timestamp('connected_at', { withTimezone: true }).notNull().defaultNow(),
     lastValidatedAt: timestamp('last_validated_at', { withTimezone: true }),
     status: integrationConnectionStatusEnum('status').notNull().default('connected'),
@@ -63,9 +61,7 @@ export const oauthStates = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     integrationKey: varchar('integration_key', { length: 50 }).notNull(),
-    initiatedBy: integer('initiated_by')
-      .notNull()
-      .references(() => users.id),
+    initiatedBy: integer('initiated_by').references(() => users.id, { onDelete: 'set null' }),
     redirectUri: varchar('redirect_uri', { length: 2048 }).notNull(),
     returnPath: varchar('return_path', { length: 512 }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

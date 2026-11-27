@@ -46,8 +46,12 @@ Table auth_codes {
 Table workspaces {
   id int [pk, increment]
   name varchar(50) [not null]
-  owner_id int [not null, ref: > users.id]
+  owner_id int [not null]
   created_at datetime [default: `now()`]
+
+  indexes {
+    (owner_id) [name: 'idx_workspaces_owner']
+  }
 }
 
 Table agents {
@@ -78,7 +82,7 @@ Table workspace_action_settings {
   workspace_id int [not null]
   tool_key varchar(100) [not null]
   enabled bool [not null, default: true]
-  updated_by int [ref: > users.id]
+  updated_by int
   created_at datetime [default: `now()`]
   updated_at datetime [default: `now()`]
 
@@ -111,7 +115,7 @@ Table workspaces_integrations {
   granted_scopes varchar(1000)
   encrypted_credentials text [not null] // OAuth access and refresh tokens
   token_expires_at datetime
-  connected_by int [not null, ref: > users.id]
+  connected_by int
   connected_at datetime [default: `now()`]
   last_validated_at datetime
   status integration_connection_status [not null, default: 'connected']
@@ -126,7 +130,7 @@ Table oauth_states {
   state_hash varchar(64) [pk] // hashed one-time state, not the raw value
   workspace_id int [not null]
   integration_key varchar(50) [not null]
-  initiated_by int [not null, ref: > users.id]
+  initiated_by int
   redirect_uri varchar(2048) [not null] // backend callback URL
   return_path varchar(512)
   expires_at datetime [not null]
@@ -203,7 +207,7 @@ Table approvals {
   params jsonb [not null, default: '{}']
   effect_summary varchar(1000) [not null]
   status approval_status [not null, default: 'pending']
-  decided_by int [ref: > users.id]
+  decided_by int
   note varchar(1000)
   requested_at datetime [default: `now()`]
   decided_at datetime
@@ -228,7 +232,7 @@ Table knowledge_sources {
   storage_content_type varchar(100)
   status knowledge_status [not null, default: 'processing']
   error_message varchar(1000)
-  created_by int [ref: > users.id]
+  created_by int
   created_at datetime [default: `now()`]
   updated_at datetime [default: `now()`]
 
@@ -253,6 +257,12 @@ Table agents_knowledge_sources {
 // Relationships
 Ref: sessions.user_id > users.id [delete: cascade]
 Ref: auth_codes.user_id > users.id [delete: cascade]
+Ref: workspaces.owner_id > users.id [delete: cascade]
+Ref: workspace_action_settings.updated_by > users.id [delete: set null]
+Ref: workspaces_integrations.connected_by > users.id [delete: set null]
+Ref: oauth_states.initiated_by > users.id [delete: set null]
+Ref: knowledge_sources.created_by > users.id [delete: set null]
+Ref: approvals.decided_by > users.id [delete: set null]
 Ref: agents.workspace_id > workspaces.id [delete: cascade]
 Ref: workspace_action_settings.workspace_id > workspaces.id [delete: cascade]
 Ref: workspaces_integrations.workspace_id > workspaces.id [delete: cascade]

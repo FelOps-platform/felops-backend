@@ -1,0 +1,9 @@
+ALTER TABLE "oauth_states" ALTER COLUMN "initiated_by" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "workspaces_integrations" ALTER COLUMN "connected_by" DROP NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_workspaces_owner" ON "workspaces" ("owner_id");--> statement-breakpoint
+ALTER TABLE "workspaces" DROP CONSTRAINT "workspaces_owner_id_users_id_fkey", ADD CONSTRAINT "workspaces_owner_id_users_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "oauth_states" DROP CONSTRAINT "oauth_states_initiated_by_users_id_fkey", ADD CONSTRAINT "oauth_states_initiated_by_users_id_fkey" FOREIGN KEY ("initiated_by") REFERENCES "users"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "workspace_action_settings" DROP CONSTRAINT "workspace_action_settings_updated_by_users_id_fkey", ADD CONSTRAINT "workspace_action_settings_updated_by_users_id_fkey" FOREIGN KEY ("updated_by") REFERENCES "users"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "workspaces_integrations" DROP CONSTRAINT "workspaces_integrations_connected_by_users_id_fkey", ADD CONSTRAINT "workspaces_integrations_connected_by_users_id_fkey" FOREIGN KEY ("connected_by") REFERENCES "users"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_sources" DROP CONSTRAINT "knowledge_sources_created_by_users_id_fkey", ADD CONSTRAINT "knowledge_sources_created_by_users_id_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "approvals" DROP CONSTRAINT "approvals_decided_by_users_id_fkey", ADD CONSTRAINT "approvals_decided_by_users_id_fkey" FOREIGN KEY ("decided_by") REFERENCES "users"("id") ON DELETE SET NULL;

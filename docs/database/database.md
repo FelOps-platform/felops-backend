@@ -56,6 +56,7 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 - The refresh cookie carries a session identifier and secret; only the secret hash is stored, so a stale token still identifies its session.
 - Sessions expire and can be revoked. Sign-out and refresh-token mismatch outside a brief concurrent-refresh grace window revoke one session; password reset revokes all user sessions.
 - Auth codes are single-use, expiring, and attempt-limited.
+- [`api/scripts/cleanup-auth-data.sql`](../../api/scripts/cleanup-auth-data.sql) removes expired/revoked sessions and expired/consumed auth codes; run it manually on Supabase or schedule it with pg_cron.
 - Email is normalized to lowercase; the unique index enforces one account per email, and `users.is_verified` is `not null`.
 - Workspace membership and roles are out of scope. `workspaces.owner_id` remains the only workspace-to-user relationship.
 
@@ -104,9 +105,9 @@ The canonical table, column, enum, and relationship definitions live in [schema.
 
 ### Cascade behavior
 
-- User deletion cascades `sessions` and `auth_codes`.
+- User deletion cascades `sessions`, `auth_codes`, and owned `workspaces` (which in turn cascade workspace-owned rows), and sets `workspace_action_settings.updated_by`, `workspaces_integrations.connected_by`, `oauth_states.initiated_by`, `knowledge_sources.created_by`, and `approvals.decided_by` to null.
+- Account deletion is not yet implemented.
 - Workspace deletion cascades workspace-owned rows.
 - Channel deletion cascades its conversations.
 - Conversation deletion cascades messages, executions, and approvals.
 - Agent deletion clears channel assignments and cascades agent-owned grants and assignments.
-- User deletion with owned workspaces is a future decision; the current schema does not define that behavior.

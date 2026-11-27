@@ -29,7 +29,7 @@ export const knowledgeSources = pgTable(
     storageContentType: varchar('storage_content_type', { length: 100 }),
     status: knowledgeStatusEnum('status').notNull().default('processing'),
     errorMessage: varchar('error_message', { length: 1000 }),
-    createdBy: integer('created_by').references(() => users.id),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
