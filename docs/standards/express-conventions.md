@@ -17,7 +17,7 @@ This page adds Express-specific mechanics and does not restate those owners.
 | HTTP & security | Express `^5.2.1`, `helmet`, `cors`, `cookie-parser`, `express-rate-limit` | [api/package.json](../../api/package.json) |
 | Language and modules | TypeScript 7 ESM, `NodeNext`, `strict` (temp TS 6 compat dep) | [api/tsconfig.json](../../api/tsconfig.json) |
 | Validation & OpenAPI | Zod `^4.6.5` (`z.toJSONSchema()` + `yaml` in `scripts/generate-openapi.ts`) | [api/package.json](../../api/package.json) |
-| Auth & email | `argon2`, `jose`, `nodemailer` | [api/package.json](../../api/package.json) |
+| Auth & email | `argon2`, `jose` | [api/package.json](../../api/package.json) |
 | Logging | Pino `^10.4.0`, `pino-http ^11.0.0` (with header/secret redaction) | [api/src/config/logger.ts](../../api/src/config/logger.ts) |
 | Data | Drizzle ORM `^1.0.0-rc.4`, `pg ^8.23.1` | [api/package.json](../../api/package.json) |
 | Tests | Vitest `^5.0.3`, Supertest `^7.3.1`, `@electric-sql/pglite` (in-memory Postgres) | [api/package.json](../../api/package.json) |

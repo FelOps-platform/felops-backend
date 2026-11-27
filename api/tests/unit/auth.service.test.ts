@@ -242,7 +242,7 @@ describe('auth services (PGlite PostgreSQL)', () => {
 
     const originalSendReset = emailSender.sendPasswordResetCode.bind(emailSender);
     emailSender.sendPasswordResetCode = async () => {
-      throw new Error('SMTP outage');
+      throw new Error('EmailJS outage');
     };
     try {
       await expect(requestPasswordReset({ email: 'hana@acm.com' })).rejects.toMatchObject({

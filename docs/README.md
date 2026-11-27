@@ -14,6 +14,7 @@ This directory is the source of truth for the Backend API, data model, and produ
 | Product workflows | [features/](features/) |
 | Frontend integration and local development | [development/frontend-integration.md](development/frontend-integration.md) |
 | Backend testing strategy | [development/testing.md](development/testing.md) |
+| Email delivery (EmailJS) | [development/email.md](development/email.md) |
 | AI Service boundary | [ai-service-integration/ai-service-contract.md](ai-service-integration/ai-service-contract.md) |
 | Engineering rules | [standards/engineering-conventions.md](standards/engineering-conventions.md) |
 | Express 5 API conventions | [standards/express-conventions.md](standards/express-conventions.md) |

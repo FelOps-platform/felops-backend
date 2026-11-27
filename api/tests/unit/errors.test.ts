@@ -124,11 +124,11 @@ describe('AppError hierarchy and error normalizer', () => {
       JWT_RESET_SECRET: 'b'.repeat(32),
       AUTH_CODE_PEPPER: 'c'.repeat(32),
       REFRESH_TOKEN_PEPPER: 'd'.repeat(32),
-      SMTP_HOST: 'smtp.gmail.com',
-      SMTP_PORT: 465,
-      SMTP_USER: 'noreply@felops.dev',
-      SMTP_PASS: 'app-password',
-      EMAIL_FROM: 'noreply@felops.dev',
+      EMAILJS_SERVICE_ID: 'service_test',
+      EMAILJS_PUBLIC_KEY: 'public_test_key',
+      EMAILJS_PRIVATE_KEY: 'private_test_key',
+      EMAILJS_TEMPLATE_VERIFICATION_ID: 'template_verification',
+      EMAILJS_TEMPLATE_RESET_ID: 'template_reset',
     };
 
     expect(envSchema.parse(baseEnv).COOKIE_SECURE).toBe(true);

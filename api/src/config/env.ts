@@ -53,11 +53,11 @@ export const envSchema = z
     JWT_RESET_SECRET: z.string().min(32),
     AUTH_CODE_PEPPER: z.string().min(32),
     REFRESH_TOKEN_PEPPER: z.string().min(32),
-    SMTP_HOST: z.string().trim().min(1),
-    SMTP_PORT: z.coerce.number().int().min(1).max(65535),
-    SMTP_USER: z.string().trim().min(1),
-    SMTP_PASS: z.string().min(1),
-    EMAIL_FROM: z.email(),
+    EMAILJS_SERVICE_ID: z.string().trim().min(1),
+    EMAILJS_PUBLIC_KEY: z.string().trim().min(1),
+    EMAILJS_PRIVATE_KEY: z.string().trim().min(1),
+    EMAILJS_TEMPLATE_VERIFICATION_ID: z.string().trim().min(1),
+    EMAILJS_TEMPLATE_RESET_ID: z.string().trim().min(1),
   })
   .transform((parsed) => ({
     ...parsed,

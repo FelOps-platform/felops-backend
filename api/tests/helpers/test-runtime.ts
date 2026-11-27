@@ -74,11 +74,11 @@ export function initTestConfig(): void {
     JWT_RESET_SECRET: 'test-reset-secret-minimum-32-chars-long!',
     AUTH_CODE_PEPPER: 'test-code-pepper-minimum-32-chars-long!!',
     REFRESH_TOKEN_PEPPER: 'test-refresh-pepper-min-32-chars-long!!!',
-    SMTP_HOST: 'smtp.gmail.com',
-    SMTP_PORT: 465,
-    SMTP_USER: 'noreply@felops.test',
-    SMTP_PASS: 'test-app-password',
-    EMAIL_FROM: 'noreply@felops.test',
+    EMAILJS_SERVICE_ID: 'service_test',
+    EMAILJS_PUBLIC_KEY: 'public_test_key',
+    EMAILJS_PRIVATE_KEY: 'private_test_key',
+    EMAILJS_TEMPLATE_VERIFICATION_ID: 'template_verification',
+    EMAILJS_TEMPLATE_RESET_ID: 'template_reset',
   });
   initConfig(config);
   initLogger(config);

@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
 import { getConfig } from '../../config/env.js';
 
 export interface AuthCodeEmailInput {
@@ -8,17 +6,20 @@ export interface AuthCodeEmailInput {
   expiresInMinutes: number;
 }
 
-let cachedTransporter: Transporter | null = null;
+const EMAILJS_SEND_URL = 'https://api.emailjs.com/api/v1.0/email/send';
+const HTTP_TIMEOUT_MS = 30_000;
 
 export async function sendVerificationCode({
   to,
   code,
   expiresInMinutes,
 }: AuthCodeEmailInput): Promise<void> {
-  await sendEmail({
+  const { EMAILJS_TEMPLATE_VERIFICATION_ID } = getConfig();
+  await sendTemplateEmail({
+    templateId: EMAILJS_TEMPLATE_VERIFICATION_ID,
     to,
-    subject: 'Verify your FelOps email address',
-    text: `Your FelOps verification code is ${code}. It expires in ${expiresInMinutes} minutes.`,
+    code,
+    expiresInMinutes,
   });
 }
 
@@ -27,36 +28,42 @@ export async function sendPasswordResetCode({
   code,
   expiresInMinutes,
 }: AuthCodeEmailInput): Promise<void> {
-  await sendEmail({
+  const { EMAILJS_TEMPLATE_RESET_ID } = getConfig();
+  await sendTemplateEmail({
+    templateId: EMAILJS_TEMPLATE_RESET_ID,
     to,
-    subject: 'Reset your FelOps password',
-    text: `Your FelOps password reset code is ${code}. It expires in ${expiresInMinutes} minutes.`,
+    code,
+    expiresInMinutes,
   });
 }
 
-async function sendEmail(input: { to: string; subject: string; text: string }): Promise<void> {
-  const { EMAIL_FROM } = getConfig();
-  await getTransporter().sendMail({
-    to: input.to,
-    from: EMAIL_FROM,
-    subject: input.subject,
-    text: input.text,
-  });
-}
+async function sendTemplateEmail(input: {
+  templateId: string;
+  to: string;
+  code: string;
+  expiresInMinutes: number;
+}): Promise<void> {
+  const { EMAILJS_SERVICE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY } = getConfig();
 
-function getTransporter(): Transporter {
-  if (!cachedTransporter) {
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = getConfig();
-    cachedTransporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      // Port 465 uses implicit TLS; port 587 upgrades via STARTTLS.
-      secure: SMTP_PORT === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
+  const response = await fetch(EMAILJS_SEND_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: input.templateId,
+      user_id: EMAILJS_PUBLIC_KEY,
+      accessToken: EMAILJS_PRIVATE_KEY,
+      template_params: {
+        to_email: input.to,
+        code: input.code,
+        expires_in_minutes: input.expiresInMinutes,
       },
-    });
+    }),
+    signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    // Do not include the EmailJS response body: it can contain recipient PII.
+    throw new Error(`EmailJS send failed with status ${response.status}`);
   }
-  return cachedTransporter;
 }

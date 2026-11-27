@@ -16,7 +16,7 @@ bash bin/check-backend-docs.sh
 bash bin/check-agent-workflow.sh
 ```
 
-`npm test --prefix api` sets `NODE_ENV=test` and runs Vitest once. Tests do not need Infisical credentials, a live PostgreSQL server, or SMTP.
+`npm test --prefix api` sets `NODE_ENV=test` and runs Vitest once. Tests do not need Infisical credentials, a live PostgreSQL server, or EmailJS access.
 
 ## Test stack
 
@@ -61,13 +61,15 @@ Only slow or external boundaries are mocked:
 
 | Boundary                                   | Where                       | Why                                                              |
 | ------------------------------------------ | --------------------------- | ---------------------------------------------------------------- |
-| SMTP (`email-sender`)                      | Auth service and HTTP tests | No network, no real inbox                                        |
+| EmailJS (`email-sender`)                    | Auth service and HTTP tests | No network, no real inbox                                        |
 | Argon2 (`hashPassword` / `verifyPassword`) | Auth service and HTTP tests | Keep tests fast                                                  |
 | Rate limiter                               | Auth HTTP test only         | Its counters are module-level and not reset by `runtime.reset()` |
 
 Everything else is real: JWT signing, HMAC codes and refresh secrets, refresh rotation, transactions, SQL, constraints, and the error pipeline.
 
 The real Argon2id implementation is still covered by `api/tests/unit/auth.crypto.test.ts`; Jest/Vitest timing is why that test has a longer timeout.
+
+Email delivery details and EmailJS setup are in [Email delivery](email.md).
 
 The rate-limit wrapper itself is covered by `api/tests/integration/app.test.ts`. The auth HTTP test mocks it so accumulated counters do not make later requests flaky.
 
@@ -81,14 +83,14 @@ The rate-limit wrapper itself is covered by `api/tests/integration/app.test.ts`.
 | `tests/unit/auth.service.test.ts`      | Auth services   | Sign-up edge cases, latest-code invalidation, attempt lockout, expiry, sign-in states, refresh grace, reset flow, email outage |
 | `tests/unit/auth.crypto.test.ts`       | Crypto          | Argon2id, HMAC codes/secrets, refresh token parsing, JWT separation                                                            |
 | `tests/unit/errors.test.ts`            | Errors/config   | `AppError` hierarchy, normalizer, `COOKIE_SECURE` derivation                                                                   |
-| `tests/unit/email-sender.test.ts`      | Email adapter   | SMTP transport options and message content                                                                                     |
+| `tests/unit/email-sender.test.ts`      | Email adapter   | EmailJS payload, template selection, and error responses                                                                       |
 | `tests/unit/schema.test.ts`            | Database schema | Enums, tables, columns, nullability, indexes, foreign keys, relations                                                          |
 
 The former `workspaces.service.test.ts` was removed because it duplicated the HTTP integration coverage for list/create/isolation/cap. Service-specific edge cases that cannot be observed over HTTP remain in `auth.service.test.ts`.
 
 ## Deployed smoke test
 
-The automated suite is local and deterministic. A smoke test checks the deployed wiring: real database, real SMTP, real cookies, CORS, and the Origin guard.
+The automated suite is local and deterministic. A smoke test checks the deployed wiring: real database, real EmailJS delivery, real cookies, CORS, and the Origin guard.
 
 The API is currently deployed at `https://felops-backend.onrender.com/api/v1`. There is no deployed frontend yet, so `--origin` must be an origin already present in the deployed `CORS_ORIGINS` (or a local origin you added for frontend development).
 
@@ -135,7 +137,7 @@ It prints no tokens or cookies. Signup mode creates a real account; use a dedica
 
 These need staging or manual verification:
 
-- Real SMTP delivery and inbox behavior.
+- Real EmailJS delivery and inbox behavior.
 - Infisical secret retrieval and real environment values.
 - Live Supabase migration state.
 - Browser third-party cookie policy across Safari, Firefox, and Chrome.

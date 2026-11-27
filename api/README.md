@@ -16,7 +16,7 @@ From the repository root, install dependencies without running lifecycle scripts
 npm ci --prefix api --ignore-scripts
 ```
 
-Server startup loads runtime secrets from Infisical via `loadEnv()` using `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` (`.env.example` lists bootstrap variable names; never commit credentials). Runtime secrets validated in `src/config/env.ts` include `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM`. `COOKIE_SECURE` is derived from `NODE_ENV` (`production` only).
+Server startup loads runtime secrets from Infisical via `loadEnv()` using `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` (`.env.example` lists bootstrap variable names; never commit credentials). Runtime secrets validated in `src/config/env.ts` include `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `EMAILJS_SERVICE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`, `EMAILJS_TEMPLATE_VERIFICATION_ID`, and `EMAILJS_TEMPLATE_RESET_ID`. `COOKIE_SECURE` is derived from `NODE_ENV` (`production` only).
 
 The install command skips Husky setup and does not configure Git's local `core.hooksPath`. Run checks explicitly.
 
@@ -44,7 +44,7 @@ server.ts (loadEnv → initLogger → initDatabase → listen)
 - `src/app.ts`, `src/routes.ts`, and `src/server.ts`: pure `createApp()` factory, `/api/v1` router mount, and process bootstrap (DB readiness, graceful shutdown, fatal handlers).
 - `src/errors/` and `src/middleware/`: `AppError` hierarchy, central error normalizer, request ID, Zod validation (`validate` / `getValidated`), bearer authentication (`authenticate` / `getAuthUser`), `express-rate-limit` wrapper, and 404/error handlers.
 - `src/modules/auth/` and `src/modules/workspaces/`: plain-function golden blueprints — `workspaces/` (3 owner-scoped endpoints, minimal CRUD+auth) and `auth/` (9 endpoints across workflow-split services + transactions).
-- `src/config/` and `src/infra/`: runtime configuration (`loadEnv()`/`getConfig()`), database lifecycle (`initDatabase()`/`getDb()`), Pino logging with redaction, Infisical secret retrieval, and Nodemailer SMTP email sender.
+- `src/config/` and `src/infra/`: runtime configuration (`loadEnv()`/`getConfig()`), database lifecycle (`initDatabase()`/`getDb()`), Pino logging with redaction, Infisical secret retrieval, and the EmailJS email sender over HTTPS.
 - `src/database/schema.ts` and `drizzle/`: Drizzle schema and migrations.
 - `tests/`: credential-free unit and Supertest integration test suite.
 
