@@ -45,9 +45,9 @@ paths:
       tags:
         - Auth
       summary: Create account
-      description: Creates an unverified account (or overwrites an existing unverified account) and sends
-        a 6-digit verification code. Returns 409 EMAIL_ALREADY_EXISTS when a verified account
-        already exists.
+      description: Creates an unverified account, or resends a code for an existing unverified account
+        without changing its credentials, and sends a 6-digit verification code. Returns 409
+        EMAIL_ALREADY_EXISTS when a verified account already exists.
       operationId: signUp
       requestBody:
         required: true
@@ -81,6 +81,8 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500": &a3
           $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/UpstreamUnavailable"
   /auth/verify-email:
     post:
       tags:
@@ -104,7 +106,8 @@ paths:
           description: Email verified and session created
           headers:
             Set-Cookie:
-              description: HttpOnly; SameSite=Strict; Path=/api/v1/auth refresh cookie (felops_refresh_token)
+              description: HttpOnly; SameSite=None; Secure (Lax for local HTTP); Path=/api/v1/auth refresh cookie
+                (felops_refresh_token)
               schema:
                 type: string
           content:
@@ -156,9 +159,8 @@ paths:
       tags:
         - Auth
       summary: Resend email verification code
-      description: Enforces a 60-second cooldown keyed to normalized email and client IP. Returns 202 when
-        a new code is sent, 404 NOT_FOUND for unknown emails, or 409 EMAIL_ALREADY_VERIFIED if
-        already verified.
+      description: Rate-limited per client IP. Returns 202 when a new code is sent, 404 NOT_FOUND for
+        unknown emails, or 409 EMAIL_ALREADY_VERIFIED if already verified.
       operationId: resendVerification
       requestBody:
         required: true
@@ -197,6 +199,8 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
         "500": *a3
+        "503":
+          $ref: "#/components/responses/UpstreamUnavailable"
   /auth/sign-in:
     post:
       tags:
@@ -217,7 +221,8 @@ paths:
           description: Authenticated
           headers:
             Set-Cookie:
-              description: HttpOnly; SameSite=Strict; Path=/api/v1/auth refresh cookie (felops_refresh_token)
+              description: HttpOnly; SameSite=None; Secure (Lax for local HTTP); Path=/api/v1/auth refresh cookie
+                (felops_refresh_token)
               schema:
                 type: string
           content:
@@ -277,6 +282,8 @@ paths:
               example:
                 error:
                   code: SESSION_EXPIRED
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
         "500":
           $ref: "#/components/responses/InternalError"
   /auth/sign-out:
@@ -293,6 +300,8 @@ paths:
       responses:
         "204":
           description: Signed out
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
         "500":
           $ref: "#/components/responses/InternalError"
   /auth/me:
@@ -327,8 +336,8 @@ paths:
       tags:
         - Auth
       summary: Request password reset code
-      description: Enforces a 60-second cooldown keyed to normalized email and client IP. Sends a 6-digit
-        reset code when the account exists, or returns 404 NOT_FOUND for unknown emails.
+      description: Rate-limited per client IP. Sends a 6-digit reset code when the account exists, or
+        returns 404 NOT_FOUND for unknown emails.
       operationId: requestPasswordReset
       requestBody:
         required: true
@@ -358,6 +367,8 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
         "500": *a3
+        "503":
+          $ref: "#/components/responses/UpstreamUnavailable"
   /auth/password-reset/verify:
     post:
       tags:
@@ -563,7 +574,7 @@ components:
       type: apiKey
       in: cookie
       name: felops_refresh_token
-      description: HttpOnly, SameSite=Strict opaque refresh cookie scoped to /api/v1/auth.
+      description: HttpOnly, SameSite=None; Secure opaque refresh cookie scoped to /api/v1/auth.
   schemas:
     ErrorResponse:
       type: object
@@ -636,6 +647,7 @@ components:
           enum:
             - storage
             - ai_service
+            - email
     Meta:
       type: object
       required:
@@ -924,7 +936,7 @@ components:
                 - field: email
                   code: invalid_format
     RateLimited:
-      description: Rate limit or 60-second resend/reset cooldown exceeded
+      description: Rate limit exceeded
       content:
         application/json:
           schema:
@@ -932,6 +944,26 @@ components:
           example:
             error:
               code: RATE_LIMITED
+    ForbiddenOrigin:
+      description: Cookie-authenticated request came from a disallowed Origin
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: FORBIDDEN
+    UpstreamUnavailable:
+      description: Email delivery is unavailable; the request can be retried
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: UPSTREAM_UNAVAILABLE
+              details:
+                - service: email
     InternalError:
       description: Unexpected internal error
       content:

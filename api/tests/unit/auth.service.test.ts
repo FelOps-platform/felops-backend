@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AUTH_CODE_TTL_MS,
-  AUTH_COOLDOWN_MS,
   AUTH_ERROR_CODES,
   REFRESH_GRACE_WINDOW_MS,
 } from '@/modules/auth/auth.constants.js';
@@ -55,8 +54,8 @@ describe('auth services (PGlite PostgreSQL)', () => {
     vi.useRealTimers();
   });
 
-  it('supports sign-up, unverified overwrite, 409 EMAIL_ALREADY_EXISTS for verified users, and verify-email', async () => {
-    await signUp({ name: 'Hana', email: 'Hana@ACM.com', password: 'StrongPassword123!' });
+  it('does not overwrite unverified credentials, returns 409 for verified users, and verifies email', async () => {
+    await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
     const firstCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
 
     await signUp({ name: 'Hana Ehab', email: 'hana@acm.com', password: 'NewStrongPassword123!' });
@@ -71,7 +70,7 @@ describe('auth services (PGlite PostgreSQL)', () => {
       code: secondCode,
       userAgent: 'Vitest',
     });
-    expect(verified.user.name).toBe('Hana Ehab');
+    expect(verified.user.name).toBe('Hana');
     expect(verified.user.isVerified).toBe(true);
     expect(verified.accessToken).toBeTruthy();
     expect(verified.refreshToken).toContain('.');
@@ -80,11 +79,22 @@ describe('auth services (PGlite PostgreSQL)', () => {
     expect(me.email).toBe('hana@acm.com');
 
     await expect(
+      signIn({ email: 'hana@acm.com', password: 'NewStrongPassword123!', userAgent: null }),
+    ).rejects.toMatchObject({ statusCode: 401, code: AUTH_ERROR_CODES.INVALID_CREDENTIALS });
+
+    const signedIn = await signIn({
+      email: 'hana@acm.com',
+      password: 'StrongPassword123!',
+      userAgent: null,
+    });
+    expect(signedIn.accessToken).toBeTruthy();
+
+    await expect(
       signUp({ name: 'Attacker', email: 'hana@acm.com', password: 'AttackerPassword123!' }),
     ).rejects.toMatchObject({ statusCode: 409, code: AUTH_ERROR_CODES.EMAIL_ALREADY_EXISTS });
 
     const saved = await findUserByEmail('hana@acm.com');
-    expect(saved?.name).toBe('Hana Ehab');
+    expect(saved?.name).toBe('Hana');
   });
 
   it('enforces hash-before-expiry ordering and 5-attempt lockout on verification codes', async () => {
@@ -115,35 +125,19 @@ describe('auth services (PGlite PostgreSQL)', () => {
     ).rejects.toMatchObject({ statusCode: 422, code: AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE });
   });
 
-  it('enforces 60-second cooldown and explicit 404/409 errors on resend', async () => {
-    await expect(
-      resendVerification({ email: 'ghost@acm.com', clientIp: '1.2.3.4' }),
-    ).rejects.toMatchObject({
+  it('returns explicit 404/409 errors on resend', async () => {
+    await expect(resendVerification({ email: 'ghost@acm.com' })).rejects.toMatchObject({
       statusCode: 404,
       code: 'NOT_FOUND',
       details: [{ resource: 'user' }],
     });
     expect(emailSender.sent).toHaveLength(0);
-    await expect(
-      resendVerification({ email: 'ghost@acm.com', clientIp: '1.2.3.4' }),
-    ).rejects.toMatchObject({ statusCode: 429, code: AUTH_ERROR_CODES.RATE_LIMITED });
-
-    vi.advanceTimersByTime(AUTH_COOLDOWN_MS + 1);
-    await expect(
-      resendVerification({ email: 'ghost@acm.com', clientIp: '1.2.3.4' }),
-    ).rejects.toMatchObject({
-      statusCode: 404,
-      code: 'NOT_FOUND',
-      details: [{ resource: 'user' }],
-    });
 
     await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
     const code = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
     await verifyEmail({ email: 'hana@acm.com', code, userAgent: null });
 
-    await expect(
-      resendVerification({ email: 'hana@acm.com', clientIp: '1.2.3.5' }),
-    ).rejects.toMatchObject({
+    await expect(resendVerification({ email: 'hana@acm.com' })).rejects.toMatchObject({
       statusCode: 409,
       code: AUTH_ERROR_CODES.EMAIL_ALREADY_VERIFIED,
     });
@@ -188,7 +182,7 @@ describe('auth services (PGlite PostgreSQL)', () => {
     });
   });
 
-  it('supports 2-step password reset and handles email outages safely', async () => {
+  it('supports 2-step password reset and reports email outages as upstream failures', async () => {
     await signUp({ name: 'Hana', email: 'hana@acm.com', password: 'StrongPassword123!' });
     const verifyCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'verification' });
     const verified = await verifyEmail({
@@ -197,15 +191,13 @@ describe('auth services (PGlite PostgreSQL)', () => {
       userAgent: null,
     });
 
-    await expect(
-      requestPasswordReset({ email: 'ghost@acm.com', clientIp: '10.0.0.0' }),
-    ).rejects.toMatchObject({
+    await expect(requestPasswordReset({ email: 'ghost@acm.com' })).rejects.toMatchObject({
       statusCode: 404,
       code: 'NOT_FOUND',
       details: [{ resource: 'user' }],
     });
 
-    await requestPasswordReset({ email: 'hana@acm.com', clientIp: '10.0.0.1' });
+    await requestPasswordReset({ email: 'hana@acm.com' });
     const resetCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'password_reset' });
 
     const { resetToken } = await verifyPasswordResetCode({
@@ -232,8 +224,7 @@ describe('auth services (PGlite PostgreSQL)', () => {
     });
     expect(signedIn.accessToken).toBeTruthy();
 
-    vi.advanceTimersByTime(AUTH_COOLDOWN_MS + 1000);
-    await requestPasswordReset({ email: 'hana@acm.com', clientIp: '10.0.0.2' });
+    await requestPasswordReset({ email: 'hana@acm.com' });
     const resetCode2 = emailSender.latestCodeFor({
       email: 'hana@acm.com',
       type: 'password_reset',
@@ -254,9 +245,11 @@ describe('auth services (PGlite PostgreSQL)', () => {
       throw new Error('SMTP outage');
     };
     try {
-      await expect(
-        requestPasswordReset({ email: 'hana@acm.com', clientIp: '10.0.0.3' }),
-      ).resolves.toBeUndefined();
+      await expect(requestPasswordReset({ email: 'hana@acm.com' })).rejects.toMatchObject({
+        statusCode: 503,
+        code: 'UPSTREAM_UNAVAILABLE',
+        details: [{ service: 'email' }],
+      });
     } finally {
       emailSender.sendPasswordResetCode = originalSendReset;
     }

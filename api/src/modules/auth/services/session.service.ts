@@ -19,7 +19,7 @@ import {
   rotateSessionToken,
 } from '../auth.repository.js';
 import { deleteRefreshGrace, findRefreshGrace, setRefreshGrace } from '../auth.stores.js';
-import { issueSession, normalizeEmail } from './auth-code.helper.js';
+import { issueSession } from './auth-code.helper.js';
 import type { SessionAuthResult } from './auth-code.helper.js';
 
 const DUMMY_PASSWORD_VALUE = 'felops-timing-equalization-dummy-password';
@@ -30,7 +30,7 @@ export async function signIn(input: {
   password: string;
   userAgent: string | null;
 }): Promise<SessionAuthResult> {
-  const email = normalizeEmail(input.email);
+  const email = input.email;
   const user = await findUserByEmail(email);
 
   if (!user) {

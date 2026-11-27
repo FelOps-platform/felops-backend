@@ -12,6 +12,8 @@ This directory is the source of truth for the Backend API, data model, and produ
 | Database schema | [database/schema.dbml](database/schema.dbml) |
 | Database overview | [database/database.md](database/database.md) |
 | Product workflows | [features/](features/) |
+| Frontend integration and local development | [development/frontend-integration.md](development/frontend-integration.md) |
+| Backend testing strategy | [development/testing.md](development/testing.md) |
 | AI Service boundary | [ai-service-integration/ai-service-contract.md](ai-service-integration/ai-service-contract.md) |
 | Engineering rules | [standards/engineering-conventions.md](standards/engineering-conventions.md) |
 | Express 5 API conventions | [standards/express-conventions.md](standards/express-conventions.md) |
@@ -34,6 +36,7 @@ docs/
     database.md             Database overview and change guidance
     schema.dbml             Canonical planned schema
   features/                 Feature and workflow design
+  development/              Frontend integration and backend testing guides
   ai-service-integration/   Protected AI Service contract and summary
   standards/                Engineering, documentation, Express, and AI engineering rules
   adr/                      Architecture decision records

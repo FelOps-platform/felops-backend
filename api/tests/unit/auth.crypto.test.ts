@@ -27,7 +27,7 @@ describe('auth.crypto', () => {
     expect(hash.startsWith('$argon2id$')).toBe(true);
     expect(await verifyPassword({ hash, password: 'StrongPassword123!' })).toBe(true);
     expect(await verifyPassword({ hash, password: 'WrongPassword123!' })).toBe(false);
-  });
+  }, 15_000);
 
   it('generates 6-digit codes and verifies HMAC-SHA-256 hashes', () => {
     const code = generateSixDigitCode();

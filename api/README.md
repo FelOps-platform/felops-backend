@@ -4,6 +4,10 @@ TypeScript/Express API for FelOps. Implemented routes cover `GET /api/v1/health`
 
 The AI Service is a separate repository. The Backend owns agent configuration, credentials, tool execution, approvals, and frontend conversation history. Provider credentials never leave the Backend.
 
+## Deployment
+
+The API is deployed on Render at `https://felops-backend.onrender.com` (health: `/api/v1/health`). Frontend integration and local proxy setup are documented in [`docs/development/frontend-integration.md`](../docs/development/frontend-integration.md).
+
 ## Setup
 
 From the repository root, install dependencies without running lifecycle scripts:
@@ -12,7 +16,7 @@ From the repository root, install dependencies without running lifecycle scripts
 npm ci --prefix api --ignore-scripts
 ```
 
-Server startup loads runtime secrets from Infisical via `loadEnv()` using `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` (`.env.example` lists bootstrap variable names; never commit credentials). Runtime secrets validated in `src/config/env.ts` include `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, and optional `COOKIE_SECURE`.
+Server startup loads runtime secrets from Infisical via `loadEnv()` using `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, and `INFISICAL_PROJECT_ID` (`.env.example` lists bootstrap variable names; never commit credentials). Runtime secrets validated in `src/config/env.ts` include `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM`. `COOKIE_SECURE` is derived from `NODE_ENV` (`production` only).
 
 The install command skips Husky setup and does not configure Git's local `core.hooksPath`. Run checks explicitly.
 

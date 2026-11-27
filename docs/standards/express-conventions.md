@@ -240,7 +240,7 @@ export class AppError extends Error {
 | `NotFoundError` | `404` | `NOT_FOUND` | Missing resource or non-member workspace |
 | `ConflictError` | `409` | `CONFLICT` | Duplicate or invalid state transition; pass a resource-specific code |
 | `UnprocessableEntityError` | `422` | `VALIDATION_ERROR` | Semantically invalid input or unavailable action |
-| `TooManyRequestsError` | `429` | `RATE_LIMITED` | Route rate limit or resend/reset cooldown exceeded |
+| `TooManyRequestsError` | `429` | `RATE_LIMITED` | Route rate limit exceeded |
 
 Each subclass shares the uniform `(message, code, details, options)` parameter order, sets its status
 and default code, and passes overrides to `super`. The safe `message` is for server-side logs. The client envelope contains only `code` and optional
@@ -266,6 +266,7 @@ The error handler maps expected failure classes before falling back to `INTERNAL
 | PostgreSQL `22P02` / `22003` | `422` | `VALIDATION_ERROR` | Invalid representation or numeric out-of-range (e.g., `int4` overflow) |
 | PostgreSQL `23514` | `422` | `VALIDATION_ERROR` | Check constraint violation |
 | PostgreSQL `40001` / `40P01` | `503` | `UPSTREAM_UNAVAILABLE` | Retry serialization/deadlock at the transaction boundary, then report storage unavailable with `details: [{ service: "storage" }]` |
+| Email delivery failure | `503` | `UPSTREAM_UNAVAILABLE` | Report `details: [{ service: "email" }]`; the persisted code/account remains and the request can be retried |
 | Unknown error | `500` | `INTERNAL_ERROR` | `isOperational = false`; alert on these |
 
 The API outline reserves `400 MALFORMED_REQUEST` for unparseable request syntax. Client-caused database
@@ -343,7 +344,9 @@ any route or Zod schema:
 
 Validate `body`, `query`, and `params` in middleware with Zod, then pass typed data downstream.
 Normalize `req.body ?? {}` first. Use strict object schemas for JSON bodies, coerce path and query
-numbers explicitly, and bound string lengths. Reject unknown query shapes instead of silently
+numbers explicitly, and bound string lengths. Apply request-boundary normalization (trimming,
+lowercasing) in the Zod schema; services and repositories must consume validated values as-is and
+must not repeat that normalization. Reject unknown query shapes instead of silently
 accepting them. A validation failure throws `UnprocessableEntityError` with `VALIDATION_ERROR` details.
 
 ### Configuration and Infisical

@@ -37,7 +37,7 @@ export async function createWorkspace(input: {
       );
     }
 
-    return insertWorkspace({ ownerId: input.userId, name: input.name.trim() }, tx);
+    return insertWorkspace({ ownerId: input.userId, name: input.name }, tx);
   });
 
   return toWorkspaceDto(created);

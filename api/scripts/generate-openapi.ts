@@ -147,7 +147,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           tags: ['Auth'],
           summary: 'Create account',
           description:
-            'Creates an unverified account (or overwrites an existing unverified account) and sends a 6-digit verification code. Returns 409 EMAIL_ALREADY_EXISTS when a verified account already exists.',
+            'Creates an unverified account, or resends a code for an existing unverified account without changing its credentials, and sends a 6-digit verification code. Returns 409 EMAIL_ALREADY_EXISTS when a verified account already exists.',
           operationId: 'signUp',
           requestBody: {
             required: true,
@@ -165,6 +165,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
             },
             ...commonErrors,
             '429': errorResponseRef('RateLimited'),
+            '503': errorResponseRef('UpstreamUnavailable'),
           },
         },
       },
@@ -187,7 +188,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
               description: 'Email verified and session created',
               headers: {
                 'Set-Cookie': {
-                  description: `HttpOnly; SameSite=Strict; Path=/api/v1/auth refresh cookie (${REFRESH_COOKIE_NAME})`,
+                  description: `HttpOnly; SameSite=None; Secure (Lax for local HTTP); Path=/api/v1/auth refresh cookie (${REFRESH_COOKIE_NAME})`,
                   schema: { type: 'string' },
                 },
               },
@@ -226,7 +227,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           tags: ['Auth'],
           summary: 'Resend email verification code',
           description:
-            'Enforces a 60-second cooldown keyed to normalized email and client IP. Returns 202 when a new code is sent, 404 NOT_FOUND for unknown emails, or 409 EMAIL_ALREADY_VERIFIED if already verified.',
+            'Rate-limited per client IP. Returns 202 when a new code is sent, 404 NOT_FOUND for unknown emails, or 409 EMAIL_ALREADY_VERIFIED if already verified.',
           operationId: 'resendVerification',
           requestBody: {
             required: true,
@@ -241,6 +242,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
             },
             ...commonErrors,
             '429': errorResponseRef('RateLimited'),
+            '503': errorResponseRef('UpstreamUnavailable'),
           },
         },
       },
@@ -261,7 +263,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
               description: 'Authenticated',
               headers: {
                 'Set-Cookie': {
-                  description: `HttpOnly; SameSite=Strict; Path=/api/v1/auth refresh cookie (${REFRESH_COOKIE_NAME})`,
+                  description: `HttpOnly; SameSite=None; Secure (Lax for local HTTP); Path=/api/v1/auth refresh cookie (${REFRESH_COOKIE_NAME})`,
                   schema: { type: 'string' },
                 },
               },
@@ -302,6 +304,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
                 'Refresh cookie missing, expired, revoked, or reused outside grace window',
               content: inlineErrorContent('SESSION_EXPIRED'),
             },
+            '403': errorResponseRef('ForbiddenOrigin'),
             '500': errorResponseRef('InternalError'),
           },
         },
@@ -316,6 +319,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           security: [{ refreshToken: [] }, {}],
           responses: {
             '204': { description: 'Signed out' },
+            '403': errorResponseRef('ForbiddenOrigin'),
             '500': errorResponseRef('InternalError'),
           },
         },
@@ -350,7 +354,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           tags: ['Auth'],
           summary: 'Request password reset code',
           description:
-            'Enforces a 60-second cooldown keyed to normalized email and client IP. Sends a 6-digit reset code when the account exists, or returns 404 NOT_FOUND for unknown emails.',
+            'Rate-limited per client IP. Sends a 6-digit reset code when the account exists, or returns 404 NOT_FOUND for unknown emails.',
           operationId: 'requestPasswordReset',
           requestBody: {
             required: true,
@@ -361,6 +365,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
             '404': notFoundResponse('user', 'No account exists for the submitted email'),
             ...commonErrors,
             '429': errorResponseRef('RateLimited'),
+            '503': errorResponseRef('UpstreamUnavailable'),
           },
         },
       },
@@ -532,7 +537,8 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           type: 'apiKey',
           in: 'cookie',
           name: REFRESH_COOKIE_NAME,
-          description: 'HttpOnly, SameSite=Strict opaque refresh cookie scoped to /api/v1/auth.',
+          description:
+            'HttpOnly, SameSite=None; Secure opaque refresh cookie scoped to /api/v1/auth.',
         },
       },
       schemas: {
@@ -604,7 +610,7 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           type: 'object',
           required: ['service'],
           properties: {
-            service: { type: 'string', enum: ['storage', 'ai_service'] },
+            service: { type: 'string', enum: ['storage', 'ai_service', 'email'] },
           },
         },
         Meta: {
@@ -729,8 +735,26 @@ export function buildClientOpenApiDocument(): Record<string, unknown> {
           },
         },
         RateLimited: {
-          description: 'Rate limit or 60-second resend/reset cooldown exceeded',
+          description: 'Rate limit exceeded',
           content: inlineErrorContent('RATE_LIMITED'),
+        },
+        ForbiddenOrigin: {
+          description: 'Cookie-authenticated request came from a disallowed Origin',
+          content: inlineErrorContent('FORBIDDEN'),
+        },
+        UpstreamUnavailable: {
+          description: 'Email delivery is unavailable; the request can be retried',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorResponse' },
+              example: {
+                error: {
+                  code: 'UPSTREAM_UNAVAILABLE',
+                  details: [{ service: 'email' }],
+                },
+              },
+            },
+          },
         },
         InternalError: {
           description: 'Unexpected internal error',

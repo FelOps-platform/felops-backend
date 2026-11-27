@@ -20,6 +20,7 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\"",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check",
+    "smoke:auth": "tsx scripts/smoke-auth.ts",
     "prepare": "husky"
   },
   "keywords": [],

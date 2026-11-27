@@ -19,14 +19,11 @@ import {
   createUser,
   findUserByEmail,
   markUserVerified,
-  updateUnverifiedUser,
 } from '../auth.repository.js';
 import {
-  assertCooldownAllowed,
   issueAuthCode,
   issueSession,
-  normalizeEmail,
-  sendEmailSafely,
+  sendAuthEmail,
   verifyActiveAuthCode,
 } from './auth-code.helper.js';
 import type { SessionAuthResult } from './auth-code.helper.js';
@@ -36,8 +33,8 @@ export async function signUp(input: {
   email: string;
   password: string;
 }): Promise<void> {
-  const email = normalizeEmail(input.email);
-  const name = input.name.trim();
+  const email = input.email;
+  const name = input.name;
   const passwordHash = await hashPassword(input.password);
   const now = new Date();
 
@@ -49,13 +46,9 @@ export async function signUp(input: {
         return null;
       }
 
-      const user = existing
-        ? await updateUnverifiedUser({ userId: existing.id, name, passwordHash }, tx)
-        : await createUser({ name, email, passwordHash }, tx);
-
-      if (!user) {
-        return null;
-      }
+      // Never overwrite credentials for an existing unverified account: verification
+      // proves email ownership, not who set the password.
+      const user = existing ?? (await createUser({ name, email, passwordHash }, tx));
 
       return issueAuthCode(
         {
@@ -81,7 +74,7 @@ export async function signUp(input: {
     );
   }
 
-  await sendEmailSafely('sign_up_verification', () =>
+  await sendAuthEmail('sign_up_verification', () =>
     sendVerificationCode({
       to: email,
       code,
@@ -95,7 +88,7 @@ export async function verifyEmail(input: {
   code: string;
   userAgent: string | null;
 }): Promise<SessionAuthResult> {
-  const email = normalizeEmail(input.email);
+  const email = input.email;
   const now = new Date();
 
   const txResult = await getDb().transaction(async (tx) => {
@@ -145,13 +138,9 @@ export async function verifyEmail(input: {
   return txResult.result;
 }
 
-export async function resendVerification(input: {
-  email: string;
-  clientIp: string;
-}): Promise<void> {
-  const email = normalizeEmail(input.email);
+export async function resendVerification(input: { email: string }): Promise<void> {
+  const email = input.email;
   const now = new Date();
-  assertCooldownAllowed({ action: 'resend_verification', email, clientIp: input.clientIp, now });
 
   const user = await findUserByEmail(email);
   if (!user) {
@@ -173,7 +162,7 @@ export async function resendVerification(input: {
     ),
   );
 
-  await sendEmailSafely('resend_verification', () =>
+  await sendAuthEmail('resend_verification', () =>
     sendVerificationCode({
       to: email,
       code,

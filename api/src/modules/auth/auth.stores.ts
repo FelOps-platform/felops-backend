@@ -10,26 +10,7 @@ export interface RefreshGraceEntry {
 }
 
 const MAX_STORE_ENTRIES = 10_000;
-const cooldownEntries = new Map<string, number>();
 const graceEntries = new Map<string, RefreshGraceEntry>();
-
-export function checkAndSetCooldown(input: {
-  key: string;
-  ttlMs: number;
-  nowMs?: number;
-}): boolean {
-  const nowMs = input.nowMs ?? Date.now();
-  pruneExpired(cooldownEntries, (expiresAt) => expiresAt <= nowMs);
-
-  const existingExpiry = cooldownEntries.get(input.key);
-  if (existingExpiry !== undefined && existingExpiry > nowMs) {
-    return false;
-  }
-
-  evictOldestIfFull(cooldownEntries, input.key);
-  cooldownEntries.set(input.key, nowMs + input.ttlMs);
-  return true;
-}
 
 export function findRefreshGrace(input: {
   sessionId: string;
@@ -63,7 +44,6 @@ export function deleteRefreshGrace(sessionId: string): void {
 }
 
 export function clearAuthStores(): void {
-  cooldownEntries.clear();
   graceEntries.clear();
 }
 

@@ -37,9 +37,9 @@ export async function verifyEmailHandler(req: Request, res: Response): Promise<v
   sendSessionResponse(res, result);
 }
 
-export async function resendVerificationHandler(req: Request, res: Response): Promise<void> {
+export async function resendVerificationHandler(_req: Request, res: Response): Promise<void> {
   const { body } = getValidated<ResendVerificationInput>(res);
-  await resendVerification({ email: body.email, clientIp: req.ip ?? 'unknown' });
+  await resendVerification({ email: body.email });
   res.status(202).send();
 }
 
@@ -66,9 +66,9 @@ export async function getMeHandler(_req: Request, res: Response): Promise<void> 
   res.status(200).json({ data: user });
 }
 
-export async function requestPasswordResetHandler(req: Request, res: Response): Promise<void> {
+export async function requestPasswordResetHandler(_req: Request, res: Response): Promise<void> {
   const { body } = getValidated<PasswordResetRequestInput>(res);
-  await requestPasswordReset({ email: body.email, clientIp: req.ip ?? 'unknown' });
+  await requestPasswordReset({ email: body.email });
   res.status(202).send();
 }
 
@@ -96,10 +96,12 @@ function getRefreshCookie(req: Request): string | undefined {
 }
 
 function buildCookieBaseOptions(): CookieOptions {
+  const secure = getConfig().COOKIE_SECURE;
   return {
     httpOnly: true,
-    secure: getConfig().COOKIE_SECURE,
-    sameSite: 'strict',
+    secure,
+    // Cross-site frontends require SameSite=None; Secure. Local HTTP keeps Lax.
+    sameSite: secure ? 'none' : 'lax',
     path: REFRESH_COOKIE_PATH,
   };
 }

@@ -25,7 +25,6 @@ export const AUTH_CODE_LENGTH = 6;
 export const AUTH_CODE_TTL_MINUTES = 10;
 export const AUTH_CODE_TTL_MS = AUTH_CODE_TTL_MINUTES * 60 * 1000;
 export const AUTH_CODE_MAX_ATTEMPTS = 5;
-export const AUTH_COOLDOWN_MS = 60 * 1000;
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const RESET_TOKEN_TTL_SECONDS = 10 * 60;
@@ -42,11 +41,11 @@ export const MAX_EMAIL_LENGTH = 255;
 export const MAX_USER_AGENT_LENGTH = 512;
 
 export const AUTH_RATE_LIMITS = {
-  SIGN_UP: { windowMs: 15 * 60 * 1000, limit: 10 },
+  SIGN_UP: { windowMs: 15 * 60 * 1000, limit: 5 },
   SIGN_IN: { windowMs: 15 * 60 * 1000, limit: 20 },
   VERIFY_EMAIL: { windowMs: 15 * 60 * 1000, limit: 20 },
-  RESEND_VERIFICATION: { windowMs: 15 * 60 * 1000, limit: 10 },
-  PASSWORD_RESET_REQUEST: { windowMs: 15 * 60 * 1000, limit: 10 },
+  RESEND_VERIFICATION: { windowMs: 15 * 60 * 1000, limit: 5 },
+  PASSWORD_RESET_REQUEST: { windowMs: 15 * 60 * 1000, limit: 5 },
   PASSWORD_RESET_VERIFY: { windowMs: 15 * 60 * 1000, limit: 20 },
   PASSWORD_RESET_CONFIRM: { windowMs: 15 * 60 * 1000, limit: 10 },
 } as const;

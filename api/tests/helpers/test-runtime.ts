@@ -79,7 +79,6 @@ export function initTestConfig(): void {
     SMTP_USER: 'noreply@felops.test',
     SMTP_PASS: 'test-app-password',
     EMAIL_FROM: 'noreply@felops.test',
-    COOKIE_SECURE: false,
   });
   initConfig(config);
   initLogger(config);

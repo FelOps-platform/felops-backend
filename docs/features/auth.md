@@ -16,14 +16,15 @@ The [API outline](../api/api-design-outline.md) owns the auth endpoints, error c
   2. The frontend sends `POST /api/v1/auth/sign-up` with `{ name, email, password }`.
   3. The Backend validates the fields (including the 12-character password minimum) and normalizes the email to lowercase.
   4. For a new email, the Backend creates an unverified user, creates a verification code, and sends the verification email.
-  5. For an existing unverified email, the Backend updates the name and password, invalidates prior verification codes, creates a new code, and sends the verification email.
+  5. For an existing unverified email, the Backend leaves the existing name and password unchanged, invalidates prior verification codes, creates a new code, and sends the verification email.
   6. For an existing verified email, the Backend leaves the account unchanged and returns `409 EMAIL_ALREADY_EXISTS` so the frontend routes the user to sign in.
-  7. Newly created or updated unverified accounts return empty `202 Accepted`.
+  7. Newly created or existing unverified accounts return empty `202 Accepted`.
   8. No session is created before verification.
 - **Errors:**
   - `409 EMAIL_ALREADY_EXISTS`: a verified account already exists for this email.
   - `422 VALIDATION_ERROR`: a field is missing or invalid (including password shorter than 12 characters).
   - `429 RATE_LIMITED`: the sign-up rate limit is exceeded.
+  - `503 UPSTREAM_UNAVAILABLE`: the verification email could not be sent (`details: [{ service: "email" }]`); retry the request.
 
 ### Verify email
 
@@ -34,17 +35,18 @@ The [API outline](../api/api-design-outline.md) owns the auth endpoints, error c
   3. The Backend sets `is_verified = true`, consumes the code, and creates a session.
   4. The Backend returns `200` with an access token and the user, and sets the refresh cookie.
   5. A resend request uses `POST /api/v1/auth/resend-verification` with `{ email }`.
-  6. For an unverified account outside cooldowns, the Backend invalidates the previous code, sends a new code, and returns empty `202`. Unknown emails return `404 NOT_FOUND` (`details: [{ resource: "user" }]`) and verified emails return `409 EMAIL_ALREADY_VERIFIED`. Requests inside the 60-second cooldown return `429 RATE_LIMITED`.
+  6. For an unverified account, the Backend invalidates the previous code, sends a new code, and returns empty `202`. Unknown emails return `404 NOT_FOUND` (`details: [{ resource: "user" }]`) and verified emails return `409 EMAIL_ALREADY_VERIFIED`. Requests over the route rate limit return `429 RATE_LIMITED`.
 - **Errors:**
   - `404 NOT_FOUND`: no account exists for the submitted email on resend (`details: [{ resource: "user" }]`).
   - `409 EMAIL_ALREADY_VERIFIED`: the account's email is already verified on resend.
   - `422 INVALID_VERIFICATION_CODE`: the code is wrong, exhausted, consumed, or unknown.
   - `422 VERIFICATION_CODE_EXPIRED`: a matching code has expired.
-  - `429 RATE_LIMITED`: the resend cooldown or rate limit is exceeded.
+  - `429 RATE_LIMITED`: the resend rate limit is exceeded.
+  - `503 UPSTREAM_UNAVAILABLE`: the verification email could not be sent (`details: [{ service: "email" }]`); retry the request.
 - **Rules:**
   - Verification codes are 6 digits, hashed with HMAC-SHA-256 and a server pepper, with a 10-minute expiry.
-  - A code allows 5 attempts, is single-use, and has a 60-second resend cooldown.
-  - The resend cooldown is keyed to the normalized email and client IP.
+  - A code allows 5 attempts and is single-use.
+  - Resend requests are rate-limited per client IP by the route middleware.
 
 ### Sign in
 
@@ -73,6 +75,7 @@ The [API outline](../api/api-design-outline.md) owns the auth endpoints, error c
   - `401 SESSION_EXPIRED`: the session is missing, expired, revoked, or mismatched.
 - **Rules:**
   - The refresh token is an opaque `<session_id>.<secret>` value. Only the secret hash is stored, so a stale token still identifies its session and a mismatch outside the grace window revokes that session.
+  - The refresh cookie uses `SameSite=None; Secure` for cross-site frontends (`Lax` over local HTTP). Refresh and sign-out reject Origins outside `CORS_ORIGINS` with `403 FORBIDDEN`.
 
 ### Get current user
 
@@ -98,12 +101,13 @@ The [API outline](../api/api-design-outline.md) owns the auth endpoints, error c
   1. The frontend sends `POST /api/v1/auth/password-reset/request` with `{ email }`.
   2. When no account exists for that email, the Backend returns `404 NOT_FOUND` (`details: [{ resource: "user" }]`) so the frontend can route the user to sign up.
   3. When the account exists, the Backend invalidates any active reset code, creates a new reset code, sends the reset email, and returns empty `202 Accepted`.
-  4. A request inside the 60-second cooldown or over the rate limit returns `429 RATE_LIMITED`.
+  4. A request over the route rate limit returns `429 RATE_LIMITED`.
 - **Errors:**
   - `404 NOT_FOUND`: no account exists for the submitted email (`details: [{ resource: "user" }]`).
-  - `429 RATE_LIMITED`: the cooldown or rate limit is exceeded.
+  - `429 RATE_LIMITED`: the rate limit is exceeded.
+  - `503 UPSTREAM_UNAVAILABLE`: the reset email could not be sent (`details: [{ service: "email" }]`); retry the request.
 - **Rules:**
-  - The cooldown is keyed to the normalized email and client IP.
+  - Reset requests are rate-limited per client IP by the route middleware.
 
 ### Verify password reset code
 
@@ -168,5 +172,5 @@ stateDiagram-v2
 No ADR; this section records the rationale.
 
 - **Short access token and rotating refresh session.** Keeps access checks stateless while revoking refresh cookies on sign-out, password reset, or reuse outside the concurrent-refresh grace window.
-- **Verify before sign-in.** Sign-up creates no session and overwrites only unverified accounts until email ownership is proven.
+- **Verify before sign-in.** Sign-up creates no session; repeat sign-ups never change an existing account's credentials, and email ownership is proven before sign-in.
 - **Explicit UX errors over strict anti-enumeration.** `sign-up` returns `409 EMAIL_ALREADY_EXISTS` for verified emails, `resend-verification` returns `404 NOT_FOUND` or `409 EMAIL_ALREADY_VERIFIED`, and `password-reset/request` returns `404 NOT_FOUND` for unknown emails so the frontend can route users directly; `sign-in` still returns generic `401 INVALID_CREDENTIALS`.

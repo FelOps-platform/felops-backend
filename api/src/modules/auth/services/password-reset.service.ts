@@ -16,21 +16,11 @@ import {
   revokeAllUserSessions,
   updateUserPasswordAndVerify,
 } from '../auth.repository.js';
-import {
-  assertCooldownAllowed,
-  issueAuthCode,
-  normalizeEmail,
-  sendEmailSafely,
-  verifyActiveAuthCode,
-} from './auth-code.helper.js';
+import { issueAuthCode, sendAuthEmail, verifyActiveAuthCode } from './auth-code.helper.js';
 
-export async function requestPasswordReset(input: {
-  email: string;
-  clientIp: string;
-}): Promise<void> {
-  const email = normalizeEmail(input.email);
+export async function requestPasswordReset(input: { email: string }): Promise<void> {
+  const email = input.email;
   const now = new Date();
-  assertCooldownAllowed({ action: 'password_reset', email, clientIp: input.clientIp, now });
 
   const user = await findUserByEmail(email);
   if (!user) {
@@ -49,7 +39,7 @@ export async function requestPasswordReset(input: {
     ),
   );
 
-  await sendEmailSafely('password_reset', () =>
+  await sendAuthEmail('password_reset', () =>
     sendPasswordResetCode({
       to: email,
       code,
@@ -62,7 +52,7 @@ export async function verifyPasswordResetCode(input: {
   email: string;
   code: string;
 }): Promise<{ resetToken: string }> {
-  const email = normalizeEmail(input.email);
+  const email = input.email;
   const now = new Date();
 
   const txResult = await getDb().transaction(async (tx) => {

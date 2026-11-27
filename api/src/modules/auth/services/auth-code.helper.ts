@@ -1,11 +1,9 @@
 import type { DbExecutor } from '../../../config/db.js';
 import { getLogger } from '../../../config/logger.js';
-import { TooManyRequestsError } from '../../../errors/app-error.js';
+import { AppError } from '../../../errors/app-error.js';
 import {
   AUTH_CODE_MAX_ATTEMPTS,
   AUTH_CODE_TTL_MS,
-  AUTH_COOLDOWN_MS,
-  AUTH_ERROR_CODES,
   MAX_USER_AGENT_LENGTH,
   REFRESH_SESSION_TTL_MS,
 } from '../auth.constants.js';
@@ -28,7 +26,6 @@ import {
   invalidateActiveAuthCodes,
 } from '../auth.repository.js';
 import type { AuthCodeRecord } from '../auth.repository.js';
-import { checkAndSetCooldown } from '../auth.stores.js';
 
 export interface SessionAuthResult {
   accessToken: string;
@@ -40,34 +37,19 @@ export interface SessionAuthResult {
 export type VerifyAuthCodeOutcome =
   { isValid: true; authCode: AuthCodeRecord } | { isValid: false; reason: 'invalid' | 'expired' };
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-export function assertCooldownAllowed(input: {
-  action: string;
-  email: string;
-  clientIp: string;
-  now: Date;
-}): void {
-  const isAllowed = checkAndSetCooldown({
-    key: `${input.action}:${input.email}:${input.clientIp}`,
-    ttlMs: AUTH_COOLDOWN_MS,
-    nowMs: input.now.getTime(),
-  });
-  if (!isAllowed) {
-    throw new TooManyRequestsError(
-      `${input.action} cooldown active`,
-      AUTH_ERROR_CODES.RATE_LIMITED,
-    );
-  }
-}
-
-export async function sendEmailSafely(action: string, sendFn: () => Promise<void>): Promise<void> {
+export async function sendAuthEmail(action: string, sendFn: () => Promise<void>): Promise<void> {
   try {
     await sendFn();
   } catch (err) {
     getLogger().error({ err, action }, 'Auth email delivery failed');
+    throw new AppError(
+      503,
+      'UPSTREAM_UNAVAILABLE',
+      'Email delivery failed',
+      [{ service: 'email' }],
+      true,
+      { cause: err },
+    );
   }
 }
 

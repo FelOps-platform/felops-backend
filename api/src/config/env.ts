@@ -41,33 +41,6 @@ const corsOriginsSchema = z
     message: 'CORS_ORIGINS must contain at least one explicit origin and must not include "*"',
   });
 
-const optionalBooleanSchema = z
-  .union([z.boolean(), z.string()])
-  .optional()
-  .transform((val, ctx) => {
-    if (val === undefined) {
-      return undefined;
-    }
-    if (typeof val === 'boolean') {
-      return val;
-    }
-    const lower = val.trim().toLowerCase();
-    if (lower === '') {
-      return undefined;
-    }
-    if (lower === 'true' || lower === '1') {
-      return true;
-    }
-    if (lower === 'false' || lower === '0') {
-      return false;
-    }
-    ctx.addIssue({
-      code: 'custom',
-      message: 'Expected a boolean value ("true", "false", "1", or "0")',
-    });
-    return z.NEVER;
-  });
-
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(ALLOWED_NODE_ENVS),
@@ -85,11 +58,10 @@ export const envSchema = z
     SMTP_USER: z.string().trim().min(1),
     SMTP_PASS: z.string().min(1),
     EMAIL_FROM: z.email(),
-    COOKIE_SECURE: optionalBooleanSchema,
   })
   .transform((parsed) => ({
     ...parsed,
-    COOKIE_SECURE: parsed.COOKIE_SECURE ?? parsed.NODE_ENV === 'production',
+    COOKIE_SECURE: parsed.NODE_ENV === 'production',
   }));
 
 export type EnvConfig = z.infer<typeof envSchema>;

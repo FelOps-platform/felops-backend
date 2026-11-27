@@ -38,16 +38,16 @@ Client conversation and message APIs are outside this outline; conversation IDs 
 ### Auth rules
 
 - Sign-up, verify-email, resend-verification, sign-in, password-reset request, password-reset verify, and password-reset confirm are public. Refresh and sign-out use the refresh cookie. `GET /api/v1/auth/me` requires the user access token.
-- The access token travels in `Authorization: Bearer`. The refresh token is an HttpOnly, Secure, SameSite=Strict cookie scoped to `/api/v1/auth`.
+- The access token travels in `Authorization: Bearer`. The refresh token is an HttpOnly, Secure, SameSite=None cookie scoped to `/api/v1/auth` (SameSite=Lax when running over local HTTP).
 - The access token appears only in sign-in, verification, and refresh responses. Refresh tokens and auth codes never appear in JSON responses, URLs, logs, or browser storage. Refresh tokens are hashed at rest and rotated on every refresh.
 - The refresh token embeds a session identifier; only the secret hash is stored, so a stale token outside a brief concurrent-refresh grace window revokes its session.
-- Sign-up overwrites existing unverified accounts and returns `202`, or returns `409 EMAIL_ALREADY_EXISTS` for verified accounts. Resend and password-reset request return `202` on accepted requests, `404 NOT_FOUND` (`[{ resource: "user" }]`) for unknown emails, `409 EMAIL_ALREADY_VERIFIED` if already verified on resend, and `429 RATE_LIMITED` when cooldowns or rate limits trigger.
-- Resend and reset cooldowns are keyed to the normalized email and client IP.
+- Sign-up returns `202` for new or existing unverified accounts without changing existing credentials, or returns `409 EMAIL_ALREADY_EXISTS` for verified accounts. Resend and password-reset request return `202` on accepted requests, `404 NOT_FOUND` (`[{ resource: "user" }]`) for unknown emails, `409 EMAIL_ALREADY_VERIFIED` if already verified on resend, and `429 RATE_LIMITED` when a rate limit is exceeded. If the verification or reset email cannot be sent, the response is `503 UPSTREAM_UNAVAILABLE` with `details: [{ service: "email" }]`; the code remains persisted and retrying reissues it.
+- Sign-up, resend, and reset requests are rate-limited per client IP by the route middleware.
 - Sign-in returns a generic `401 INVALID_CREDENTIALS`. Correct credentials for an unverified email return `403 EMAIL_NOT_VERIFIED`.
-- Refresh and sign-out use the refresh cookie. A refresh-token mismatch outside the grace window revokes the session and returns `401 SESSION_EXPIRED`. Sign-out clears the cookie and returns `204` idempotently.
+- Refresh and sign-out use the refresh cookie. Cookie-authenticated requests from an Origin outside `CORS_ORIGINS` return `403 FORBIDDEN`. A refresh-token mismatch outside the grace window revokes the session and returns `401 SESSION_EXPIRED`. Sign-out clears the cookie and returns `204` idempotently.
 - Password-reset confirmation validates password strength first (via `VALIDATION_ERROR` details), sets `is_verified = true`, and revokes all sessions for the user. Revocation stops refresh immediately; an access token already issued remains valid until it expires.
 - Passwords use Argon2id and require at least 12 characters (`422 VALIDATION_ERROR` with field details when shorter).
-- Verification and reset codes are 6 digits, hashed with HMAC-SHA-256 and a server pepper, expire after 10 minutes, allow 5 attempts, are single-use, and have a 60-second resend cooldown; expiry errors fire only after a matching code hash.
+- Verification and reset codes are 6 digits, hashed with HMAC-SHA-256 and a server pepper, expire after 10 minutes, allow 5 attempts, and are single-use; expiry errors fire only after a matching code hash.
 - Rate limits apply to sign-up, sign-in, resend, and password reset.
 - Auth-specific errors: `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `EMAIL_ALREADY_EXISTS`, `EMAIL_ALREADY_VERIFIED`, `INVALID_VERIFICATION_CODE`, `VERIFICATION_CODE_EXPIRED`, `INVALID_RESET_CODE`, `RESET_CODE_EXPIRED`, `SESSION_EXPIRED`, `RATE_LIMITED`.
 - Workspace resources for non-members return `404 NOT_FOUND`. `403 FORBIDDEN` is reserved for future role restrictions when membership is modeled.
@@ -70,7 +70,7 @@ Client conversation and message APIs are outside this outline; conversation IDs 
   ```
 - `404 NOT_FOUND` uses `details: [{ "resource": "..." }]`; never invent a placeholder ID.
 - `422 VALIDATION_ERROR` details use `{ field, code, params? }`.
-- `503 UPSTREAM_UNAVAILABLE` details use `{ service: "storage" | "ai_service" }`.
+- `503 UPSTREAM_UNAVAILABLE` details use `{ service: "storage" | "ai_service" | "email" }`.
 - `PATCH` returns `204` unless the server transforms values the client must see.
 - Timestamps are ISO 8601 UTC. IDs are numeric unless a resource uses a UUID/string ID, such as approvals and jobs.
 - Stable slugs use `*_key` and API tool identity uses `toolKey`. Integration keys and tool keys are the stable identifiers across the code registry and database rows.

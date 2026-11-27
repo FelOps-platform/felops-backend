@@ -7,7 +7,8 @@ import {
   MIN_PASSWORD_LENGTH,
 } from './auth.constants.js';
 
-const emailSchema = z.string().trim().max(MAX_EMAIL_LENGTH).pipe(z.email());
+// Normalize at the request boundary; auth services assume lowercase emails.
+const emailSchema = z.string().trim().toLowerCase().max(MAX_EMAIL_LENGTH).pipe(z.email());
 const sixDigitCodeSchema = z
   .string()
   .trim()

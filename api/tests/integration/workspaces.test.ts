@@ -49,7 +49,7 @@ describe('Workspaces HTTP integration (/api/v1/workspaces)', () => {
     const created = await request(app)
       .post('/api/v1/workspaces')
       .set('Authorization', `Bearer ${user1Token}`)
-      .send({ name: 'Acme Studio' });
+      .send({ name: '  Acme Studio  ' });
     expect(created.status).toBe(201);
     expect(created.body.data).toMatchObject({
       name: 'Acme Studio',

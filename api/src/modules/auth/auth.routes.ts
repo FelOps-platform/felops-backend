@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
+import { getConfig } from '../../config/env.js';
+import { ForbiddenError } from '../../errors/app-error.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { createRateLimiter } from '../../middleware/rate-limit.js';
 import { validate } from '../../middleware/validate.js';
@@ -24,6 +27,15 @@ import {
   signUpSchema,
   verifyEmailSchema,
 } from './auth.schemas.js';
+
+// Cookie-authenticated requests need an Origin check when SameSite=None is used cross-site.
+const requireAllowedOrigin: RequestHandler = (req, _res, next) => {
+  const origin = req.header('origin');
+  if (origin && !getConfig().CORS_ORIGINS.includes(origin)) {
+    throw new ForbiddenError('Origin not allowed', 'FORBIDDEN');
+  }
+  next();
+};
 
 export const authRouter = Router();
 
@@ -55,9 +67,9 @@ authRouter.post(
   signInHandler,
 );
 
-authRouter.post('/refresh', refreshHandler);
+authRouter.post('/refresh', requireAllowedOrigin, refreshHandler);
 
-authRouter.post('/sign-out', signOutHandler);
+authRouter.post('/sign-out', requireAllowedOrigin, signOutHandler);
 
 authRouter.get('/me', authenticate, getMeHandler);
 

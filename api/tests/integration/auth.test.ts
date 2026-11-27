@@ -10,6 +10,10 @@ import { createTestRuntime } from '../helpers/test-runtime.js';
 import type { RecordedEmailSender, TestRuntime } from '../helpers/test-runtime.js';
 
 vi.mock('@/infra/email/email-sender.js');
+// Limiter counters are module-level and not reset by runtime.reset(); the real wrapper is tested in app.test.ts.
+vi.mock('@/middleware/rate-limit.js', () => ({
+  createRateLimiter: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
 vi.mock('@/modules/auth/auth.crypto.js', async (importOriginal) => {
   const actual = await importOriginal<typeof AuthCrypto>();
   return {
@@ -69,8 +73,8 @@ describe('Auth HTTP integration (/api/v1/auth)', () => {
     });
 
     const signUpRes = await request(app).post('/api/v1/auth/sign-up').send({
-      name: 'Hana Ehab',
-      email: 'hana@acm.com',
+      name: '  Hana Ehab  ',
+      email: '  Hana@ACM.com  ',
       password: 'StrongPassword123!',
     });
     expect(signUpRes.status).toBe(202);
@@ -103,7 +107,7 @@ describe('Auth HTTP integration (/api/v1/auth)', () => {
 
     const rawSetCookie = verifyRes.headers['set-cookie'] as unknown as string[];
     expect(rawSetCookie[0]).toContain('HttpOnly');
-    expect(rawSetCookie[0]).toContain('SameSite=Strict');
+    expect(rawSetCookie[0]).toContain('SameSite=Lax');
     expect(rawSetCookie[0]).toContain('Path=/api/v1/auth');
 
     const cookie1 = extractCookieHeader(rawSetCookie);
@@ -174,12 +178,6 @@ describe('Auth HTTP integration (/api/v1/auth)', () => {
       .send({ email: 'hana@acm.com' });
     expect(reqRes.status).toBe(202);
 
-    const cooldownRes = await request(app)
-      .post('/api/v1/auth/password-reset/request')
-      .send({ email: 'hana@acm.com' });
-    expect(cooldownRes.status).toBe(429);
-    expect(cooldownRes.body).toEqual({ error: { code: AUTH_ERROR_CODES.RATE_LIMITED } });
-
     const resetCode = emailSender.latestCodeFor({ email: 'hana@acm.com', type: 'password_reset' });
 
     const verifyReset = await request(app)
@@ -211,5 +209,18 @@ describe('Auth HTTP integration (/api/v1/auth)', () => {
     });
     expect(signInRes.status).toBe(200);
     expect(signInRes.body.data.user.isVerified).toBe(true);
+  });
+
+  it('rejects cookie-authenticated requests from disallowed origins', async () => {
+    const blocked = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Origin', 'https://evil.example');
+    expect(blocked.status).toBe(403);
+    expect(blocked.body).toEqual({ error: { code: 'FORBIDDEN' } });
+
+    const allowed = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Origin', 'http://localhost:3000');
+    expect(allowed.status).toBe(401);
   });
 });

@@ -112,7 +112,7 @@ describe('AppError hierarchy and error normalizer', () => {
     expect(() => getValidated(emptyRes)).toThrow(/validate\(\) middleware/);
   });
 
-  it('validates COOKIE_SECURE strictly and falls back to NODE_ENV === production when blank', () => {
+  it('derives COOKIE_SECURE from NODE_ENV and ignores supplied values', () => {
     const baseEnv = {
       NODE_ENV: 'production',
       LOG_LEVEL: 'info',
@@ -131,8 +131,9 @@ describe('AppError hierarchy and error normalizer', () => {
       EMAIL_FROM: 'noreply@felops.dev',
     };
 
-    expect(envSchema.parse({ ...baseEnv, COOKIE_SECURE: '   ' }).COOKIE_SECURE).toBe(true);
-    expect(envSchema.parse({ ...baseEnv, COOKIE_SECURE: 'false' }).COOKIE_SECURE).toBe(false);
-    expect(envSchema.safeParse({ ...baseEnv, COOKIE_SECURE: 'maybe' }).success).toBe(false);
+    expect(envSchema.parse(baseEnv).COOKIE_SECURE).toBe(true);
+    expect(envSchema.parse({ ...baseEnv, NODE_ENV: 'development' }).COOKIE_SECURE).toBe(false);
+    expect(envSchema.parse({ ...baseEnv, NODE_ENV: 'test' }).COOKIE_SECURE).toBe(false);
+    expect(envSchema.parse({ ...baseEnv, COOKIE_SECURE: 'false' }).COOKIE_SECURE).toBe(true);
   });
 });
