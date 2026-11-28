@@ -1,6 +1,6 @@
 # Delivery
 
-This page owns the team delivery stages and their exit gates. The [documentation index](README.md) owns the reading order and document map; [agent workflow](onboarding/agent-workflow.md) owns the contributor execution loop.
+This page owns the team delivery stages and their exit gates. The [documentation index](README.md) owns the reading order and document map; [AGENTS.md](../AGENTS.md) owns the contributor execution loop and the command list.
 
 ## 1. Design
 
@@ -32,31 +32,20 @@ Implement only the authorized scope. Follow the owning design rather than invent
 
 ## 3. Contract generation
 
-The API outline is the high-level design. After implementation, generate the low-level OpenAPI specifications for other developers:
+The API outline is the high-level design. After implementing or modifying routes/schemas, regenerate and check the low-level OpenAPI specs (imported into Apidog for frontend/QA) using `npm run openapi:generate --prefix api` and `npm run openapi:check --prefix api`:
 
-- `api/openapi.client.yaml`
-- `api/openapi.internal.yaml`
+- `docs/api/openapi.client.yaml`
+- `docs/api/openapi.internal.yaml`
 
-Do not treat empty or partial placeholders as published contracts.
+Do not hand-edit generated YAML or treat empty placeholders as published contracts.
 
 ## 4. Verification and review
 
-Run the checks relevant to the change:
+Run the checks relevant to the change from the [AGENTS.md](../AGENTS.md) command table.
 
-```bash
-npm run lint --prefix api
-npm run typecheck --prefix api
-npm run build --prefix api
-npm test --prefix api
+The API test suite runs offline against in-memory PostgreSQL (`@electric-sql/pglite` + real Drizzle migrations) without Infisical credentials; live server startup (`npm run dev --prefix api`) still requires Infisical bootstrap credentials.
 
-bash bin/check-backend-docs.sh
-bash bin/check-agent-workflow.sh
-bash bin/check-opencode-config.sh
-```
-
-The API test suite currently needs Infisical bootstrap credentials. Report that limitation accurately.
-
-Substantive changes need a fresh reviewer who did not implement them. The reviewer checks the diff, design alignment, failure behavior, tests, and documentation ownership.
+Substantive changes need a fresh reviewer who did not implement them. The reviewer checks the diff, design alignment, failure behavior, tests, OpenAPI sync, and documentation ownership.
 
 **Exit gate:** checks pass, material findings are resolved, and the diff is reviewed.
 
@@ -72,7 +61,7 @@ Deployment is a separate phase with its own authorization.
 ## Definition of done
 
 - Acceptance criteria are met.
-- Owning docs and `agent-metadata.md` are current.
+- Owning docs are current.
 - Verification evidence is recorded.
 - The diff is reviewed.
 - The change is committed as a coherent unit.

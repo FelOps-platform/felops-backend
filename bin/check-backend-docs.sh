@@ -12,13 +12,14 @@ import path from 'node:path';
 
 const read = (file) => readFileSync(file, 'utf8');
 const normalize = (text) => text.replace(/\r\n/g, '\n');
-const files = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-  const file = path.join(dir, entry.name);
-  return entry.isDirectory() ? files(file) : [file];
+// Regular files only, with forward slashes; symlinks are never followed.
+const files = (dir) => (existsSync(dir) ? readdirSync(dir, { withFileTypes: true }) : []).flatMap((entry) => {
+  const file = `${dir}/${entry.name}`;
+  return entry.isDirectory() ? files(file) : entry.isFile() ? [file] : [];
 });
 
 const docsRoot = 'docs';
-const privateRoot = path.join('docs', 'private');
+const privateRoot = 'docs/private';
 const docs = files(docsRoot).filter(
   (file) => !file.startsWith(privateRoot) && (file.endsWith('.md') || file.endsWith('.mdx')),
 );
@@ -40,6 +41,18 @@ const featureFiles = [
   'docs/features/auth.md',
 ];
 
+// docs/work/<slug>/ files are historical snapshots; their links are not rewritten or checked.
+const historical = (file) => /^docs\/work\/[^/]+\//.test(file);
+const assertLocalLinks = (file, text) => {
+  if (historical(file)) return;
+  for (const match of text.matchAll(/\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
+    const target = match[1];
+    if (/^(?:[a-z][a-z\d+.-]*:|#)/i.test(target) || /[<>[\]]/.test(target)) continue;
+    const local = decodeURIComponent(target.split('#')[0]);
+    assert.ok(existsSync(path.resolve(path.dirname(file), local)), `${file}: missing local link ${target}`);
+  }
+};
+
 for (const file of docs) {
   const text = normalize(read(file));
   for (const [index, line] of text.split('\n').entries()) {
@@ -53,12 +66,13 @@ for (const file of docs) {
     const first = match[1].trim().split('\n')[0];
     assert.match(first, /^(?:stateDiagram-v2|sequenceDiagram|flowchart(?: LR| TD| RL| BT)?)$/, `${file}: invalid Mermaid diagram ${first}`);
   }
-  for (const match of text.matchAll(/\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
-    const target = match[1];
-    if (/^(?:[a-z][a-z\d+.-]*:|#)/i.test(target) || /[<>[\]]/.test(target)) continue;
-    const local = decodeURIComponent(target.split('#')[0]);
-    assert.ok(existsSync(path.resolve(path.dirname(file), local)), `${file}: missing local link ${target}`);
-  }
+  assertLocalLinks(file, text);
+}
+
+// Root docs, agent harness docs, and host adapters resolve their local links too.
+for (const file of ['AGENTS.md', 'README.md', 'api/README.md', '.github/PULL_REQUEST_TEMPLATE.md',
+  ...['.agents', '.opencode', '.claude', '.cursor'].flatMap(files).filter((f) => /\.(?:md|mdc)$/.test(f))]) {
+  assertLocalLinks(file, normalize(read(file)));
 }
 
 for (const file of featureFiles) {
@@ -81,7 +95,7 @@ const api = normalize(read(apiPath));
 const aiContract = normalize(read(aiContractPath));
 const actions = normalize(read(actionsPath));
 const architecture = normalize(read('docs/architecture.md'));
-const designCommand = normalize(read('.opencode/commands/design.md'));
+const designCommand = normalize(read('.agents/skills/design/SKILL.md'));
 
 const integrations = normalize(read('docs/features/integrations.md'));
 const auth = normalize(read('docs/features/auth.md'));
@@ -194,14 +208,16 @@ const authEndpoints = [
   'POST /api/v1/auth/sign-in',
   'POST /api/v1/auth/refresh',
   'POST /api/v1/auth/sign-out',
+  'GET /api/v1/auth/me',
   'POST /api/v1/auth/password-reset/request',
+  'POST /api/v1/auth/password-reset/verify',
   'POST /api/v1/auth/password-reset/confirm',
 ];
 assert.match(auth, /^## 1\. Workflows$/m, 'auth page documents workflows');
 assert.match(auth, /^## 2\. Session states$/m, 'auth page documents session states');
 assert.match(auth, /^## 3\. Future work$/m, 'auth page documents future work');
 assert.match(auth, /^## 4\. Decisions$/m, 'auth page documents decisions');
-assert.equal((auth.match(/^### /gm) || []).length, 7, 'auth page documents seven workflows');
+assert.equal((auth.match(/^### /gm) || []).length, 9, 'auth page documents nine workflows');
 assert.match(auth, /stateDiagram-v2/, 'auth page includes a session state diagram');
 for (const endpoint of authEndpoints) {
   assert.ok(auth.includes(endpoint), `auth page includes ${endpoint}`);
@@ -211,11 +227,14 @@ for (const error of [
   '401 INVALID_CREDENTIALS',
   '403 EMAIL_NOT_VERIFIED',
   '401 SESSION_EXPIRED',
+  '404 NOT_FOUND',
+  '409 EMAIL_ALREADY_EXISTS',
+  '409 EMAIL_ALREADY_VERIFIED',
   '422 INVALID_VERIFICATION_CODE',
   '422 VERIFICATION_CODE_EXPIRED',
   '422 INVALID_RESET_CODE',
   '422 RESET_CODE_EXPIRED',
-  '422 WEAK_PASSWORD',
+  '422 VALIDATION_ERROR',
   '429 RATE_LIMITED',
 ]) {
   assert.ok(auth.includes(error), `auth page documents ${error}`);
@@ -224,23 +243,24 @@ assert.match(auth, /Argon2id/, 'auth page documents Argon2id password hashing');
 assert.match(auth, /HMAC-SHA-256/, 'auth page documents hashed codes');
 assert.match(auth, /10-minute expiry/, 'auth page documents code expiry');
 assert.match(auth, /5 attempts/, 'auth page documents code attempts');
-assert.match(auth, /60-second/, 'auth page documents the resend cooldown');
+assert.match(auth, /rate-limited per client IP/, 'auth page documents route rate limiting');
 assert.match(auth, /single-use/, 'auth codes are single-use');
-assert.match(auth, /12 characters/, 'passwords have a minimum length');
+assert.match(auth, /12 characters|12-character/, 'passwords have a minimum length');
 assert.match(auth, /30-day absolute lifetime/, 'refresh sessions have an absolute lifetime');
 assert.match(auth, /grace window/, 'concurrent refresh rotation notes a grace window');
 assert.match(auth, /existing unverified email/, 'sign-up prevents unverified pre-hijacking');
 assert.match(auth, /opaque `<session_id>\.<secret>` value/, 'auth page documents the refresh-token session identifier');
-assert.match(auth, /cooldown is keyed to the normalized email and client IP/i, 'auth cooldowns do not reveal account existence');
-assert.match(auth, /404 NOT_FOUND/, 'auth page records the non-member workspace boundary');
+assert.match(auth, /Resend requests are rate-limited per client IP/, 'auth resend rate limiting is documented');
+assert.match(auth, /404 NOT_FOUND/, 'auth page records the not-found boundary');
 assert.match(api, /EMAIL_NOT_VERIFIED/, 'API outline documents unverified-email sign-in');
+assert.match(api, /EMAIL_ALREADY_EXISTS/, 'API outline documents existing-email sign-up conflict');
 assert.match(api, /SESSION_EXPIRED/, 'API outline documents expired sessions');
 assert.match(api, /HttpOnly/, 'API outline documents the refresh cookie');
 assert.match(api, /grace window/, 'API outline documents concurrent refresh grace');
 assert.match(api, /non-members receive `404 NOT_FOUND`/, 'API outline records the non-member workspace boundary');
-assert.match(api, /cooldowns are keyed to the normalized email and client IP/i, 'API outline records uniform auth cooldowns');
+assert.match(api, /rate-limited per client IP/i, 'API outline records auth rate limiting');
 assert.match(api, /Workspace routes require a user access token/, 'API outline separates user identity from workspace access');
-assert.match(api, /Enumeration-safe auth responses use an empty `202`/, 'API outline allows empty enumeration-safe 202 responses');
+assert.match(api, /empty `202`/, 'API outline allows empty 202 auth responses');
 assert.match(api, /resource-specific 401\/403 codes/, 'API outline allows auth-specific 401 and 403 codes');
 assert.match(architecture, /\[Authentication\]\(features\/auth\.md\)/, 'architecture links the auth page');
 
@@ -361,6 +381,13 @@ assert.match(databaseDoc, /Refresh tokens and auth codes are stored as hashes/, 
 assert.match(databaseDoc, /`sessions`, `auth_codes`/, 'database design names the auth tables');
 assert.match(databaseDoc, /password reset revokes all user sessions/i, 'database design documents reset revocation');
 assert.match(databaseDoc, /Email is normalized to lowercase/, 'database design documents email normalization');
+
+// Deleted meta-docs must not be referenced anywhere outside the historical work records.
+const stale = /agent-metadata\.md|agent-routing\.md|agent-onboarding\.md|agent-workflow\.md|docs\/onboarding|\.opencode\/README/;
+const sweep = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'api/README.md', 'opencode.json',
+  ...['docs', '.agents', '.opencode', '.claude', '.cursor', '.github'].flatMap(files)]
+  .filter((file) => !historical(file) && !file.startsWith(privateRoot) && /\.(?:md|mdc|mjs|json|ya?ml)$/.test(file));
+for (const file of sweep) assert.doesNotMatch(read(file), stale, `${file}: references a deleted meta-doc`);
 
 console.log('Backend documentation consistency passed.');
 NODE

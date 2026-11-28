@@ -1,7 +1,7 @@
-import { integer, pgTable, varchar } from 'drizzle-orm/pg-core';
-
-export const users = pgTable('users', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
-});
+export * from './enums.js';
+export * from './auth.js';
+export * from './workspaces.js';
+export * from './agents.js';
+export * from './integrations.js';
+export * from './knowledge.js';
+export * from './conversations.js';

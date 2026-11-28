@@ -11,9 +11,9 @@ Include focused test output, screenshots, logs, or manual steps where relevant.
 ## Verification
 
 Record exact commands and outcomes. Run backend commands in `api/` (or with
-`--prefix api` from root), and workflow checks with
-`bash bin/check-agent-workflow.sh`. Distinguish passing checks from checks blocked
-by the existing Infisical setup. Never include credentials in evidence.
+`--prefix api` from root), and repo checks with `bash bin/check-agent-workflow.sh` and
+`bash bin/check-backend-docs.sh`. Distinguish passing checks from checks blocked by the
+existing Infisical setup. Never include credentials in evidence.
 
 ## Documentation updated
 

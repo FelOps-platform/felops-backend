@@ -1,11 +1,41 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import env from './env.js';
+import { relations } from '../database/relations.js';
 
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-});
+function buildDrizzle(pool: Pool) {
+  return drizzle({ client: pool, relations });
+}
 
-const db = drizzle({ client: pool });
+export type Database = ReturnType<typeof buildDrizzle>;
+export type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+export type DbExecutor = Database | DbTransaction;
 
-export default db;
+let currentDb: Database | null = null;
+let currentPool: Pool | null = null;
+
+export function initDatabase(connectionString: string): { db: Database; pool: Pool } {
+  const pool = new Pool({ connectionString });
+  const db = buildDrizzle(pool);
+  currentPool = pool;
+  currentDb = db;
+  return { db, pool };
+}
+
+export function setDatabase(db: Database): void {
+  currentDb = db;
+}
+
+export function getDb(): Database {
+  if (!currentDb) {
+    throw new Error('Database not initialized; call initDatabase() or setDatabase() first.');
+  }
+  return currentDb;
+}
+
+export async function closeDatabase(): Promise<void> {
+  if (currentPool) {
+    await currentPool.end();
+    currentPool = null;
+  }
+  currentDb = null;
+}

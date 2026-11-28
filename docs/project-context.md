@@ -1,26 +1,27 @@
 # Project context
 
-Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descriptions below distinguish current code from proposed workflows.
+Product docs reconciled 2026-11-20; technical state re-verified 2026-11-26. Product descriptions below distinguish current code from proposed workflows.
 
 ## Product
 
-- What it is: This repository contains the FelOps backend API scaffold. Product docs describe a multi-tenant automation platform where workspace users configure integrations and agent actions. [api/src/app.ts](../api/src/app.ts), [Architecture](architecture.md), [Integrations](features/integrations.md), [Actions](features/actions.md)
-- Problem: The planned product connects workspace workflows to external business systems through configured actions and agents. The backend code currently exposes only a health endpoint; those workflows are not implemented here.
-- Users: Backend contributors; the documented product workflows are for workspace users configuring integrations and allowed actions. [Integrations](features/integrations.md), [Actions](features/actions.md)
-- Success looks like: Current implemented behavior is GET /api/v1/health returning status ok. Product outcomes such as integration setup, action permissions, and execution history remain proposed. [api/src/app.ts](../api/src/app.ts), [Integrations](features/integrations.md), [Actions](features/actions.md)
-- Non-goals: This repository's docs adoption does not implement business endpoints, tool execution, migrations, AI orchestration, or deployment. AI work remains in the separate felops-ai project; do not move that stack into this repository. [adoption brief](work/agent-seed-adoption/brief.md)
+- What it is: This repository contains the FelOps backend API. Product docs describe a multi-tenant automation platform where workspace users configure integrations, knowledge, channels, and agent actions. [api/src/app.ts](../api/src/app.ts), [Architecture](architecture.md), [Integrations](features/integrations.md), [Actions](features/actions.md)
+- Problem: The product connects workspace workflows to external business systems through configured actions and agents. Health, authentication, and owner-scoped workspace onboarding are implemented; integrations, actions, knowledge, channels, agents, and approvals remain planned.
+- Users: Backend contributors and workspace users authenticating, onboarding workspaces, and configuring integrations and allowed actions. [Authentication](features/auth.md), [Workspaces](features/workspaces.md), [Actions](features/actions.md)
+- Success looks like: Implemented routes cover `GET /api/v1/health`, `/api/v1/auth/*` (10 endpoints), and `/api/v1/workspaces/*` (3 endpoints), verified against in-memory PostgreSQL (PGlite) and synced to `docs/api/openapi.client.yaml`. Integration setup, action permissions, knowledge, agents, and execution history remain proposed. [api/src/routes.ts](../api/src/routes.ts), [Authentication](features/auth.md), [Workspaces](features/workspaces.md)
+- Non-goals: AI orchestration, LangGraph checkpoints, Qdrant vector storage, and SSE/webhook streaming belong in the separate `felops-ai` project; do not move that stack into this repository. [Architecture](architecture.md)
 - Deferred scope: custom HTTP actions are not part of current product scope; only built-in integration actions are documented.
 
 ## Implemented and planned
 
-| Area | Current state | Evidence |
-| --- | --- | --- |
-| API | Express app with JSON middleware and one health route | [api/src/app.ts](../api/src/app.ts), [api/src/server.ts](../api/src/server.ts) |
-| Runtime config | Infisical Universal Auth retrieval followed by Zod validation | [api/src/config/env.ts](../api/src/config/env.ts), [api/src/integrations/infisical/fetch-secrets.ts](../api/src/integrations/infisical/fetch-secrets.ts) |
-| Database | PostgreSQL/Drizzle connection module and users schema; health route has no database flow | [api/src/config/db.ts](../api/src/config/db.ts), [api/src/database/schema.ts](../api/src/database/schema.ts) |
-| Tool execution | Backend-owned planned workflow; no runtime yet | [Architecture](architecture.md#components), [AI Service contract](ai-service-integration/ai-service-contract.md), [Actions](features/actions.md) |
-| AI | Separate felops-ai project per repository boundary; async turns, approvals, and ingestion | [Architecture](architecture.md) |
-| Product workflows | Authentication, integrations, actions, knowledge, agents, approvals, and channels are documented, not implemented in the API | [Authentication](features/auth.md), [Actions](features/actions.md) |
+| Area              | Current state                                                                                                                                                                                                                              | Evidence                                                                                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API               | Pure `createApp()` Express 5 factory with `routes.ts` composition, request ID, Pino HTTP logger, Helmet, allowlisted CORS, cookie-parser, 100kb JSON limit, and `AppError` normalization                                                   | [api/src/app.ts](../api/src/app.ts), [api/src/routes.ts](../api/src/routes.ts), [api/src/server.ts](../api/src/server.ts), [api/src/errors/app-error.ts](../api/src/errors/app-error.ts)                                                                            |
+| Runtime config    | Explicit `loadEnv()` Infisical Universal Auth retrieval followed by Zod validation (no import-time I/O), including JWT/pepper/EmailJS/CORS/proxy settings                                                                                     | [api/src/config/env.ts](../api/src/config/env.ts), [api/src/infra/infisical/fetch-secrets.ts](../api/src/infra/infisical/fetch-secrets.ts)                                                                                                                          |
+| Auth & Workspaces | 10 auth endpoints (`/api/v1/auth/*` incl. `GET /auth/me` and 2-step password reset verify/confirm), shared bearer `authenticate` middleware, EmailJS email delivery over HTTPS, and 3 owner-scoped workspace endpoints (`/api/v1/workspaces/*`) | [api/src/modules/auth/auth.routes.ts](../api/src/modules/auth/auth.routes.ts), [api/src/modules/workspaces/workspaces.routes.ts](../api/src/modules/workspaces/workspaces.routes.ts), [api/src/infra/email/email-sender.ts](../api/src/infra/email/email-sender.ts) |
+| Database          | PostgreSQL/Drizzle connection module and schema for all 16 planned tables; `server.ts` checks `SELECT 1` readiness on startup                                                                                                              | [api/src/config/db.ts](../api/src/config/db.ts), [api/src/database/schema.ts](../api/src/database/schema.ts)                                                                                                                                                        |
+| Tool execution    | Backend-owned planned workflow; no runtime yet                                                                                                                                                                                             | [Architecture](architecture.md#components), [AI Service contract](ai-service-integration/ai-service-contract.md), [Actions](features/actions.md)                                                                                                                    |
+| AI                | Separate felops-ai project per repository boundary; async turns, approvals, and ingestion                                                                                                                                                  | [Architecture](architecture.md)                                                                                                                                                                                                                                     |
+| Product workflows | Integrations, actions, knowledge, agents, approvals, and channels are documented, not yet implemented in the API                                                                                                                           | [Integrations](features/integrations.md), [Actions](features/actions.md)                                                                                                                                                                                            |
 
 ## Constraints
 
@@ -29,23 +30,37 @@ Source inspected 2026-10-22; product docs reconciled 2026-11-20. Product descrip
 - Hosting, deployment target, and production runtime requirements are unknown; do not infer them from the package scripts.
 - Documentation PR #1 targets main and was still open when checked on 2026-10-22. Its proposed Sprint 1 flow and other docs are not evidence of implemented behavior. [PR #1](https://github.com/FelOps-platform/felops-backend/pull/1)
 
+## Verified technical state
+
+Re-inspected 2026-11-26 against the source files cited; command lists live in [AGENTS.md](../AGENTS.md).
+
+- **Tooling:** npm; the API has a lockfile; there is no root `package.json` or `engines` field. TypeScript 7 compiles; a TypeScript 6 compatibility dependency serves tooling that still needs the previous programmatic API (temporary). [api/package.json](../api/package.json)
+- **Runtime config:** [env.ts](../api/src/config/env.ts) exports `envSchema` and `loadEnv()` (no import-time network I/O), fetching secrets via [fetch-secrets.ts](../api/src/infra/infisical/fetch-secrets.ts) (`NODE_ENV`, `LOG_LEVEL`, `PORT`, `DATABASE_URL`, `TRUST_PROXY`, `CORS_ORIGINS`, `JWT_ACCESS_SECRET`, `JWT_RESET_SECRET`, `AUTH_CODE_PEPPER`, `REFRESH_TOKEN_PEPPER`, `EMAILJS_SERVICE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`, `EMAILJS_TEMPLATE_VERIFICATION_ID`, `EMAILJS_TEMPLATE_RESET_ID`). `COOKIE_SECURE` is derived from `NODE_ENV` (`production` only), not read from Infisical. Only `NODE_ENV` and `INFISICAL_*` bootstrap credentials are read from `process.env`.
+- **Database:** [db.ts](../api/src/config/db.ts) exports `initDatabase(connectionString)` / `getDb()` / `setDatabase()` (`drizzle({ client: pool, relations })`) with no eager import-time connection. Domain schema files under `api/src/database/` and [relations.ts](../api/src/database/relations.ts) (`defineRelations`) match the 8 enums, 16 tables, and 28 relationships in [schema.dbml](database/schema.dbml). Four Drizzle v1 RC migration folders exist in `api/drizzle/` (no `meta/_journal.json`). [drizzle.config.ts](../api/drizzle.config.ts) falls back to `process.env.DATABASE_URL` for offline `generate`, `check`, and `export`. The migration chain was applied to the shared deployment database on 2026-11-27, and the owner index plus foreign-key delete behavior were verified directly; the full chain also runs in tests via `@electric-sql/pglite`.
+- **Logging and middleware:** Pino and pino-http with secret redaction (`authorization`, `cookie`, `set-cookie`, passwords, tokens). [app.ts](../api/src/app.ts) exports a pure `createApp()` factory with `trust proxy`, `requestId`, `httpLogger`, `helmet`, allowlisted `cors`, `cookie-parser`, `100kb` JSON parsing, `express-rate-limit` wrapper, `notFoundMiddleware`, and a 4-arg `AppError` normalizer/handler; [routes.ts](../api/src/routes.ts) mounts `/auth` and `/workspaces`. [server.ts](../api/src/server.ts) calls `loadEnv()`, `initLogger()`, and `initDatabase()`, verifies DB readiness (`SELECT 1`), listens, and handles `SIGTERM`/`SIGINT` graceful shutdown and fatal process errors.
+- **Auth & Workspaces:** [api/src/modules/auth/](../api/src/modules/auth/auth.routes.ts) implements all 10 auth endpoints using plain exported functions across workflow-split services (`services/registration.service.ts`, `services/session.service.ts`, `services/password-reset.service.ts`, shared `services/auth-code.helper.ts`), Argon2id passwords, HMAC-SHA-256 6-digit codes & refresh secrets, `jose` access/reset JWTs, EmailJS email delivery over HTTPS via [email-sender.ts](../api/src/infra/email/email-sender.ts) (setup in [development/email.md](development/email.md)), per-IP route rate limits, and a 10s concurrent-refresh grace store, plus shared [authenticate.ts](../api/src/middleware/authenticate.ts) bearer middleware. [api/src/modules/workspaces/](../api/src/modules/workspaces/workspaces.routes.ts) implements owner-scoped `GET/POST /api/v1/workspaces` and `GET /api/v1/workspaces/:workspaceId`. Browser/frontend setup is documented in [development/frontend-integration.md](development/frontend-integration.md).
+- **Tests:** Vitest 5 + Supertest + `@electric-sql/pglite` (in-memory PostgreSQL running all 4 real Drizzle SQL migrations) covering errors, EmailJS email delivery, auth crypto, auth services, Drizzle schema parity, and HTTP integration (`app`, `auth`, `workspaces`) — all tests run offline without Infisical bootstrap credentials. Test layers, mocks, and runtime setup are documented in [development/testing.md](development/testing.md).
+- **CI:** [agent-workflow.yml](../.github/workflows/agent-workflow.yml) runs the credential-free agent harness, OpenCode config, and backend docs checks on pull requests and pushes to `main`. [api-ci.yml](../.github/workflows/api-ci.yml) runs install, lint, typecheck, tests, build, format, and OpenAPI checks.
+- **Deployment:** the API is deployed on Render at `https://felops-backend.onrender.com` (`GET /api/v1/health` returned `200` on 2026-11-27). Development and production currently share one database URL. No frontend is deployed yet; CORS and `TRUST_PROXY` are configured by the operator.
+- **Unknown:** license, monitoring, and rollback procedures.
+
 ## Terminology
 
-| Term | Meaning |
-| --- | --- |
-| API Server | The implemented Express process in api/src/server.ts and api/src/app.ts |
-| AI Service | A separate service described in the architecture docs; AI work lives in felops-ai |
-| Tool call | A Backend-executed run of a catalog tool. The AI Service sends the integration key, tool key, arguments, and an idempotency key. |
-| Action | A code-defined catalog tool exposed by an integration, with a workspace availability setting plus database grants and executions. |
-| Agent config | Per-turn instructions, tool grants, approval flags, and catalog version sent by the Backend. |
-| Channel | A workspace deployment instance of a code-defined channel type, with at most one operating agent. |
-| Knowledge source | A workspace-owned URL, file, or plaintext source that agents select; ingested into Qdrant. |
-| Integration | A code-defined external business system with a database-backed OAuth workspace connection. |
+| Term             | Meaning                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| API Server       | The implemented Express process in api/src/server.ts and api/src/app.ts                                                           |
+| AI Service       | A separate service described in the architecture docs; AI work lives in felops-ai                                                 |
+| Tool call        | A Backend-executed run of a catalog tool. The AI Service sends the integration key, tool key, arguments, and an idempotency key.  |
+| Action           | A code-defined catalog tool exposed by an integration, with a workspace availability setting plus database grants and executions. |
+| Agent config     | Per-turn instructions, tool grants, approval flags, and catalog version sent by the Backend.                                      |
+| Channel          | A workspace deployment instance of a code-defined channel type, with at most one operating agent.                                 |
+| Knowledge source | A workspace-owned URL, file, or plaintext source that agents select; ingested into Qdrant.                                        |
+| Integration      | A code-defined external business system with a database-backed OAuth workspace connection.                                        |
 
 ## Sources
 
 - [API package and lockfile](../api/package.json), [API README](../api/README.md)
-- [API app](../api/src/app.ts), [runtime config](../api/src/config/env.ts), [Infisical adapter](../api/src/integrations/infisical/fetch-secrets.ts), [database module](../api/src/config/db.ts), and [schema](../api/src/database/schema.ts)
+- [API app](../api/src/app.ts), [runtime config](../api/src/config/env.ts), [Infisical adapter](../api/src/infra/infisical/fetch-secrets.ts), [database module](../api/src/config/db.ts), and [schema](../api/src/database/schema.ts)
 - [Architecture](architecture.md), [API outline](api/api-design-outline.md), [Integrations](features/integrations.md), and [Actions](features/actions.md)
 - [Adoption brief](work/agent-seed-adoption/brief.md) and [adoption plan](work/agent-seed-adoption/plan.md)
 - [Pending documentation PR #1](https://github.com/FelOps-platform/felops-backend/pull/1), checked open against main on 2026-10-22

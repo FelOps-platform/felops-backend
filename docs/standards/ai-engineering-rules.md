@@ -33,7 +33,7 @@ Never state that an action succeeded if a tool failed.
 ## 5. Memory and retrieval
 
 - Keep temporary task state separate from durable project facts.
-- Store verified project facts in agent-metadata.md, durable architecture choices in ADRs, and task evidence with its docs/work/ folder.
+- Store verified project facts in docs/project-context.md, durable architecture choices in ADRs, and task evidence with its docs/work/ folder.
 - Preserve source IDs, titles, URLs or paths, timestamps, and claim mappings when using retrieved content.
 - Do not use stale retrieved data for live operational decisions.
 
@@ -43,7 +43,7 @@ Use the smallest relevant verification available in the detected stack. For chan
 
 ## 7. Architecture
 
-Keep orchestration, tool execution, business logic, schemas, memory, evaluation, and external integrations separated at useful boundaries. Keep deterministic business rules outside prompts. Use reusable skills for repeated workflows rather than making the root instructions unmanageably long.
+Keep orchestration, tool execution, business logic, schemas, memory, evaluation, and external integrations separated at useful boundaries. Keep deterministic business rules outside prompts.
 
 ## 8. Documentation
 

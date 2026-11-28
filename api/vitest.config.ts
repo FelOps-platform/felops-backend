@@ -5,7 +5,8 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
+    environment: 'node',
     include: ['tests/**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    hookTimeout: 30_000,
   },
 });
